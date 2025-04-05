@@ -346,7 +346,7 @@ def setup_kibana_user(es_base_url, es_auth):
             {
                 # Privileges for internal alerting indices
                 "names": [".internal.alerts-*"],
-                "privileges": ["all"], # Grant all, including create_index
+                "privileges": ["all", "indices:admin/aliases"], # Grant all AND explicitly add alias management
                 "allow_restricted_indices": True # These are restricted
             },
             {
