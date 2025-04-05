@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Callable, Awaitable
 # Ensure correct import path if models was moved
 from mcp.server.models import InitializationOptions
 import mcp.types as types
-from mcp.server import NotificationOptions, Server, JSONSchema
+from mcp.server import NotificationOptions, Server
 import mcp.server.stdio
 # Assuming pydantic might be needed by resources/prompts if they use AnyUrl etc.
 from pydantic import AnyUrl
