@@ -9,7 +9,8 @@ from .docker_utils import (
     get_docker_compose_cmd, run_compose_command, parse_compose_config
 )
 from .es_kb_setup import (
-    wait_for_elasticsearch, wait_for_kibana, setup_kibana_user
+    wait_for_elasticsearch, wait_for_kibana, setup_kibana_user,
+    create_index_template # Import the new function
 )
 from .detection import (
     create_sample_detection_rule, write_auth_data, wait_for_signals
@@ -67,12 +68,18 @@ def main():
         run_compose_command(COMPOSE_FILE, compose_cmd, "logs", "elasticsearch")
         sys.exit(1)
 
-    # --- 4. Setup Kibana Internal User ---
+    # --- 4. Setup Kibana Internal User and Index Template ---
     print_info("Attempting to setup Kibana user and role for Kibana internal use...")
     kibana_user_setup = setup_kibana_user(es_base_url, es_auth)
     if not kibana_user_setup:
         print_error("Failed to setup Kibana user/role for Kibana internal use.")
         sys.exit(1)
+
+    print_info("Attempting to create index template for auth logs...")
+    if not create_index_template(es_base_url, es_auth):
+        print_error("Failed to create index template. Proceeding, but rule might fail.")
+        # Decide if this should be fatal - for now, just warn
+        # sys.exit(1)
 
     # --- 5. Wait for Kibana and Run Test Logic ---
     print_info("Waiting for Kibana API to become available...")
