@@ -304,106 +304,40 @@ def write_trigger_document(es_base_url, es_auth):
     return False
 
 def setup_kibana_user(es_base_url, es_auth):
-    """Creates a dedicated user and role in Elasticsearch for Kibana."""
-    print_info("Setting up dedicated Kibana user and role in Elasticsearch...")
-    role_name = "kibana_system_role"
+    """Creates a dedicated user in Elasticsearch for Kibana with superuser role."""
+    print_info("Setting up dedicated Kibana user with superuser role in Elasticsearch...")
+    # Removed role creation logic - we will assign the built-in 'superuser' role
     user_name = KIBANA_SYSTEM_USER
     password = KIBANA_SYSTEM_PASSWORD
 
-    role_url = f"{es_base_url}/_security/role/{role_name}"
     user_url = f"{es_base_url}/_security/user/{user_name}"
 
-    # Define Kibana Role based on documentation
-    # Granting necessary cluster privileges and specific index privileges
-    # Includes allow_restricted_indices: true for Kibana system indices
-    role_payload = {
-        "cluster": [
-            "monitor",
-            "manage_index_templates",
-            "manage_pipeline",
-            "manage_ilm",
-            "read_ilm",
-            "manage_security"
-        ],
-        "indices": [
-            {
-                # Privileges for Kibana's own indices
-                "names": [
-                    ".kibana*",
-                    ".tasks",
-                    ".apm-custom-link",
-                    ".reporting-*",
-                    ".kibana-event-log-*",
-                    ".kibana_security_solution*",
-                    ".kibana_alerting_cases*",
-                    ".kibana_analytics*",
-                    ".kibana_ingest*"
-                    # Add other .kibana* patterns if needed by specific plugins
-                ],
-                "privileges": ["all"],
-                "allow_restricted_indices": True # ESSENTIAL
-            },
-            {
-                # Privileges for internal alerting indices
-                "names": [".internal.alerts-*"],
-                "privileges": ["all", "indices:admin/aliases"], # Grant all AND explicitly add alias management
-                "allow_restricted_indices": True # These are restricted
-            },
-            {
-                "names": ["ilm-history*"],
-                "privileges": ["read"] # Only valid index privileges
-            },
-            {
-                # Allow reading application data if necessary (example)
-                "names": ["*"], # Or be more specific like "my-app-indices-*"
-                "privileges": ["read", "view_index_metadata"]
-            }
-        ]
-    }
-
-    # Define Kibana User, assigning the specific role AND the built-in kibana_admin role
+    # Define Kibana User, assigning the superuser role
     user_payload = {
         "password" : password,
-        "roles" : [ role_name, "kibana_admin" ], # Assign custom role AND kibana_admin
-        "full_name" : "Internal Kibana System User for MCP Test Env",
+        "roles" : [ "superuser" ], # Assign superuser role directly
+        "full_name" : "Internal Kibana System User (Superuser) for MCP Test Env",
         "email" : "kibana@example.com",
         "enabled" : True
     }
 
     headers = {"Content-Type": "application/json"}
     success = True
-    role_created_or_updated = False
 
-    # 1. Create/Update Role
+    # Create/Update User
     try:
-        print_info(f"Creating/updating role: {role_name}")
-        response = requests.put(role_url, auth=es_auth, headers=headers, json=role_payload, verify=False, timeout=10)
-        if 200 <= response.status_code < 300:
-             print_info(f"Role '{role_name}' created/updated successfully.")
-             role_created_or_updated = True
-        else:
-            print_warning(f"Failed to create/update role '{role_name}' (HTTP {response.status_code}): {response.text}")
+        print_info(f"Creating/updating user: {user_name} with 'superuser' role")
+        response = requests.put(user_url, auth=es_auth, headers=headers, json=user_payload, verify=False, timeout=10)
+        if not (200 <= response.status_code < 300):
+            print_warning(f"Failed to create/update user '{user_name}' (HTTP {response.status_code}): {response.text}")
             success = False
+        else:
+             print_info(f"User '{user_name}' created/updated successfully with superuser role.")
     except requests.exceptions.RequestException as e:
-        print_error(f"Error creating/updating role '{role_name}': {e}")
+        print_error(f"Error creating/updating user '{user_name}': {e}")
         success = False
 
-    # 2. Create/Update User only if Role succeeded
-    if role_created_or_updated:
-        try:
-            print_info(f"Creating/updating user: {user_name} with role '{role_name}'")
-            response = requests.put(user_url, auth=es_auth, headers=headers, json=user_payload, verify=False, timeout=10)
-            if not (200 <= response.status_code < 300):
-                print_warning(f"Failed to create/update user '{user_name}' (HTTP {response.status_code}): {response.text}")
-                success = False
-            else:
-                 print_info(f"User '{user_name}' created/updated successfully.")
-        except requests.exceptions.RequestException as e:
-            print_error(f"Error creating/updating user '{user_name}': {e}")
-            success = False
-    else:
-        print_info(f"Skipping user creation for '{user_name}' because role setup failed.")
-        success = False # Mark overall setup as failed if role failed
+    # Removed role creation block
 
     return success
 
