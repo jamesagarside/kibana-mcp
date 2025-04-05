@@ -3,7 +3,7 @@
   "description": "Detects the MCP test trigger document via KQL.",
   "enabled": true,
   "type": "query",
-  "language": "kql",
+  "language": "kuery",
   "index": ["mcp-trigger-docs"],
   "query": "message : \"MCP test trigger document\" and agent.hostname : \"test-host-123\"",
   "risk_score": 47,

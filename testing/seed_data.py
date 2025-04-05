@@ -591,6 +591,7 @@ def main():
         sys.exit(1)
 
     alerts_verified = False
+    signals_verified = False
     trigger_doc_written = False
     kibana_user_setup = False # Reset flag
     es_ready = False
