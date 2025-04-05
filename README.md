@@ -20,24 +20,23 @@ This server exposes the following tools to MCP clients:
 To connect to your Kibana instance, the server requires the following environment variables to be set:
 
 *   `KIBANA_URL`: The base URL of your Kibana instance (e.g., `https://your-kibana.example.com:5601`).
-*   `KIBANA_API_KEY`: Your Kibana API key in the format `id:secret`. Generate this in Kibana under Stack Management -> API Keys. Ensure the key has permissions to read and update alerts (e.g., appropriate privileges for the Alerting plugin).
+*   `KIBANA_API_KEY`: A Kibana API key in the format `id:secret`. Generate this in Kibana under Stack Management -> API Keys. Ensure the key has permissions to read and update alerts (e.g., appropriate privileges for the Alerting plugin).
 
-## Quickstart
+## Quickstart: Running the Server
 
-### Running the Server
+1.  Ensure you have set the required environment variables (`KIBANA_URL`, `KIBANA_API_KEY`).
+2.  Navigate to the project directory (`kibana-mcp`).
+3.  Run the server using `uv` (which uses the entry point defined in `pyproject.toml`):
 
-Ensure you have set the required environment variables (`KIBANA_URL`, `KIBANA_API_KEY`). Then, navigate to the project directory and run the server using `uv`:
-
-```bash
-cd kibana-mcp
-export KIBANA_URL="<your_kibana_url>"
-export KIBANA_API_KEY="<your_api_key_id>:<your_api_key_secret>"
+    ```bash
+    export KIBANA_URL="<your_kibana_url>"
+    export KIBANA_API_KEY="<your_api_key_id>:<your_api_key_secret>"
 uv run kibana-mcp
-```
+    ```
 
 The server will start and listen for MCP connections via standard input/output.
 
-### Connecting a Client (e.g., Claude Desktop)
+## Connecting an MCP Client (e.g., Claude Desktop)
 
 You can configure MCP clients like Claude Desktop to use this server.
 
@@ -60,10 +59,9 @@ Add the following server configuration under the `mcpServers` key, replacing `/p
         "kibana-mcp"
       ],
       "options": {
-          // Ensure the command runs within the correct project directory
           "cwd": "/path/to/kibana-mcp",
-           // Pass required environment variables if not set globally
           "env": {
+            // Ensure the server receives the required environment variables
             "KIBANA_URL": "<your_kibana_url>",
             "KIBANA_API_KEY": "<your_api_key_id>:<your_api_key_secret>"
           }
@@ -103,19 +101,19 @@ To prepare the package for distribution:
 
 ### Debugging
 
-Since MCP servers run over stdio, debugging can be challenging. For the best debugging experience, we strongly recommend using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector).
+Debugging MCP servers via stdio can be tricky. We recommend using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector).
 
-You can launch the MCP Inspector via [`npm`](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) with this command (replace `/path/to/kibana-mcp` with the actual project path):
+Launch the MCP Inspector via [`npm`](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (replace `/path/to/kibana-mcp`):
 
 ```bash
 npx @modelcontextprotocol/inspector uv --directory /path/to/kibana-mcp run kibana-mcp
 ```
 
-Upon launching, the Inspector will display a URL that you can access in your browser to begin debugging.
+Access the URL provided by the Inspector in your browser.
 
-## Local Development & Testing
+## Local Development & Testing Environment
 
-The `testing/` directory contains scripts and configuration to spin up local Elasticsearch and Kibana instances using Docker Compose and automatically seed them with a sample alert rule.
+The `testing/` directory contains scripts and configuration to spin up local Elasticsearch and Kibana instances using Docker Compose and automatically seed them with a sample detection rule.
 
 **Prerequisites:**
 
@@ -133,58 +131,28 @@ The `testing/` directory contains scripts and configuration to spin up local Ela
     ```bash
     pip install -r requirements-dev.txt
     ```
-2.  Navigate to the `testing/` directory:
+2.  Run the quickstart script from the project root directory:
     ```bash
-    cd testing
+    ./testing/quickstart-test-env.sh
     ```
-3.  Make the quickstart script executable (if needed):
-    ```bash
-    chmod +x quickstart-test-env.sh
-    ```
-4.  Run the quickstart script:
-    ```bash
-    ./quickstart-test-env.sh
-    ```
-5.  The script (`seed_data.py`) will perform checks, start the containers, wait for Kibana, create a sample rule, and print the access URLs/credentials.
-6.  Navigate back to the root directory (`cd ..`) before running the MCP server.
+3.  The script (`testing/main.py`) will perform checks, start the containers, wait for services, create a sample **detection rule**, write sample auth data, verify signal generation, and print the access URLs/credentials.
+4.  Access Kibana at `http://localhost:5601` (User: `elastic`, Pass: `elastic`). The internal user Kibana connects with is `kibana_system_user`.
 
 **Manual Steps (Overview):**
 
-The `testing/quickstart-test-env.sh` script executes `testing/seed_data.py`. This Python script performs the following:
+The `testing/quickstart-test-env.sh` script executes `python -m testing.main`. This Python script performs the following:
 1.  Checks for Docker & Docker Compose.
-2.  Parses `testing/docker-compose.yml` for configuration (ports, password).
-3.  Runs `docker compose up -d` (using the correct command for v1/v2).
-4.  Waits for the Kibana API (`http://localhost:5601/api/status`) to be available.
-5.  Reads `testing/sample_rule.json`.
-6.  Sends a POST request to `http://localhost:5601/api/alerting/rule` to create the rule.
-7.  Prints status, URLs, credentials, and shutdown commands.
+2.  Parses `testing/docker-compose.yml` for configuration.
+3.  Runs `docker compose up -d`.
+4.  Waits for Elasticsearch and Kibana APIs.
+5.  Creates a custom user (`kibana_system_user`) and role for Kibana's internal use.
+6.  Creates an index template (`mcp_auth_logs_template`).
+7.  Reads `testing/sample_rule.json` (a detection rule).
+8.  Sends a POST request to `http://localhost:5601/api/detection_engine/rules` to create the rule.
+9.  Writes sample data from `testing/auth_events.ndjson` to `mcp-auth-logs-default` index.
+10. Checks for detection signals using `http://localhost:5601/api/detection_engine/signals/search`.
+11. Prints status, URLs, credentials, and shutdown commands.
 
-**Stopping the Environment:**
+**Stopping the Test Environment:**
 
-*   Run the shutdown command printed by the script (e.g., `docker compose -f testing/docker-compose.yml down`).
-
-## Running the Server
-
-1.  Ensure the local test environment is running (or configure environment variables for your target Kibana).
-2.  Set the required environment variables (`KIBANA_URL` and authentication variables) from the **root** directory.
-    *   For local testing (after running quickstart):
-        ```bash
-        export KIBANA_URL=http://localhost:5601
-        export KIBANA_USERNAME=elastic
-        export KIBANA_PASSWORD=elastic
-        ```
-    *   For other environments, set `KIBANA_URL` and either `KIBANA_API_KEY` or (`KIBANA_USERNAME`/`KIBANA_PASSWORD`).
-3.  Install main server dependencies (if you have a `requirements.txt`):
-    ```bash
-    # pip install -r requirements.txt
-    ```
-4.  From the **root** directory, run the server module:
-    ```bash
-    python -m src.kibana_mcp.server
-    ```
-
-## Available Tools
-
-*   `tag_alert`: Adds tags to a Kibana security alert.
-*   `adjust_alert_severity`: Changes the severity of a Kibana security alert.
-*   `get_alerts`: Fetches recent Kibana security alerts.
+*   Run the shutdown command printed by the script (e.g., `docker compose -f testing/docker-compose.yml down`). Use the `-v` flag (`down -v`) to remove data volumes if needed.
