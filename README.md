@@ -14,6 +14,13 @@ This server exposes the following tools to MCP clients:
 *   **`adjust_alert_severity`**: Changes the severity of a specific Kibana security alert.
     *   `alert_id` (string, required): The ID of the Kibana alert.
     *   `new_severity` (string, required): The new severity level. Must be one of: "informational", "low", "medium", "high", "critical".
+*   **`get_alerts`**: Fetches recent Kibana security alerts, optionally filtering them.
+    *   `status` (string, optional): Filter by alert status (e.g., "open", "acknowledged", "closed").
+    *   `severity` (array of strings, optional): Filter by one or more severity levels (e.g., ["high", "critical"]).
+    *   `time_range_field` (string, optional, defaults to "@timestamp"): Field to use for time range filtering.
+    *   `time_range_start` (string, optional): Start of the time range (e.g., "now-1d", "2024-01-01T00:00:00Z").
+    *   `time_range_end` (string, optional): End of the time range (e.g., "now").
+    *   `max_alerts` (integer, optional, defaults to 50): Maximum number of alerts to return.
 
 ## Configuration
 
