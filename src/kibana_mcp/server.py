@@ -23,18 +23,16 @@ def configure_client(options: InitializationOptions):
     """Configure the httpx client after initialization using env vars."""
     global http_client
     kibana_url = os.getenv("KIBANA_URL")
-    api_key_id_secret = os.getenv("KIBANA_API_KEY") # Expecting "id:secret" format
+    # Expecting the value to be already Base64 encoded "id:secret"
+    encoded_api_key = os.getenv("KIBANA_API_KEY") 
 
     if not kibana_url:
         raise ValueError("KIBANA_URL environment variable not set.")
-    if not api_key_id_secret:
-        raise ValueError("KIBANA_API_KEY environment variable not set (expected 'id:secret' format).")
-
-    # Encode API key for header
-    encoded_api_key = base64.b64encode(api_key_id_secret.encode()).decode('ascii')
+    if not encoded_api_key:
+        raise ValueError("KIBANA_API_KEY environment variable not set (expected Base64 encoded 'id:secret').")
 
     headers = {
-        "Authorization": f"ApiKey {encoded_api_key}",
+        "Authorization": f"ApiKey {encoded_api_key}", # Use the env var directly
         "kbn-xsrf": "true", # Kibana requires this header
         "Content-Type": "application/json"
     }
@@ -176,12 +174,76 @@ async def handle_list_tools() -> list[types.Tool]:
         )
     ]
 
+async def _call_tag_alert(alert_id: str, tags_to_add: List[str]) -> str:
+    """Handles the API interaction for tagging an alert."""
+    global http_client
+    if not http_client: # Should ideally be checked before calling, but added for safety
+        return "Error: HTTP client not initialized."
+
+    api_path_get = f"/api/alerting/alert/{alert_id}"
+    api_path_update = f"/api/alerting/alert/{alert_id}/_update"
+    result_text = f"Attempting to add tags {tags_to_add} to alert {alert_id}..."
+
+    try:
+        # Fetch the current alert to get existing tags
+        get_resp = await http_client.get(api_path_get)
+        get_resp.raise_for_status()
+        current_alert = get_resp.json()
+        existing_tags = current_alert.get("tags", [])
+        
+        # Avoid duplicate tags
+        updated_tags = list(set(existing_tags + tags_to_add))
+        payload = {"tags": updated_tags}
+
+        # Make the update request
+        response = await http_client.post(api_path_update, json=payload)
+        response.raise_for_status() 
+        result_text += f"\nKibana API response: {response.status_code} - Update successful."
+
+    except httpx.HTTPStatusError as e:
+        if e.request.method == 'GET':
+             result_text = f"Error fetching alert {alert_id} to update tags: {e.response.status_code} - {e.response.text}"
+        else:
+             result_text += f"\nKibana API returned error during update: {e.response.status_code} - {e.response.text}"
+    except httpx.RequestError as exc:
+        result_text += f"\nError calling Kibana API: {exc}"
+    except Exception as e:
+         # Catch potential JSON parsing errors or other issues
+         result_text = f"Error processing tag update for alert {alert_id}: {str(e)}"
+         
+    return result_text
+
+async def _call_adjust_alert_severity(alert_id: str, new_severity: str) -> str:
+    """Handles the API interaction for adjusting alert severity."""
+    global http_client
+    if not http_client: # Safety check
+        return "Error: HTTP client not initialized."
+
+    api_path = f"/api/alerting/alert/{alert_id}/_update"
+    # Assuming severity is stored within alert 'params'
+    payload = {"params": {"severity": new_severity}} # Adjust path if severity is stored elsewhere
+    result_text = f"Attempting to change severity of alert {alert_id} to {new_severity}..."
+
+    try:
+        response = await http_client.post(api_path, json=payload)
+        response.raise_for_status() 
+        result_text += f"\nKibana API response: {response.status_code} - Update successful."
+
+    except httpx.RequestError as exc:
+        result_text += f"\nError calling Kibana API: {exc}"
+    except httpx.HTTPStatusError as exc:
+        result_text += f"\nKibana API returned error: {exc.response.status_code} - {exc.response.text}"
+    except Exception as e:
+         result_text += f"\nUnexpected error during severity update: {str(e)}"
+
+    return result_text
+
 @server.call_tool()
 async def handle_call_tool(
     name: str, arguments: dict | None
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
     """
-    Handle tool execution requests for Kibana alerts.
+    Handle tool execution requests for Kibana alerts by dispatching to specific handlers.
     """
     global http_client
     if not http_client:
@@ -190,65 +252,26 @@ async def handle_call_tool(
         raise ValueError("Missing arguments")
 
     alert_id = arguments.get("alert_id")
-    if not alert_id:
-        raise ValueError("Missing required argument: alert_id")
+    if not alert_id or not isinstance(alert_id, str):
+        raise ValueError("Missing or invalid required argument: alert_id (must be a string)")
 
-    # Construct the API endpoint URL
-    # NOTE: This endpoint might vary depending on Kibana version/config
-    # It assumes alerts are managed by the 'alerting' plugin.
-    # We might need to fetch the alert first to get its current state for updates.
-    api_path = f"/api/alerting/alert/{alert_id}/_update"
-
-    payload = {}
     result_text = ""
 
     if name == "tag_alert":
         tags_to_add = arguments.get("tags")
-        if not tags_to_add or not isinstance(tags_to_add, list):
+        if not tags_to_add or not isinstance(tags_to_add, list) or not all(isinstance(tag, str) for tag in tags_to_add):
             raise ValueError("Missing or invalid required argument: tags (must be a list of strings)")
-
-        # Kibana update API might require providing the full new state,
-        # or it might support partial updates/scripts.
-        # Assuming a simple script to append tags for now, adjust if needed.
-        # This requires fetching the alert first to get existing tags.
-        try:
-            get_resp = await http_client.get(f"/api/alerting/alert/{alert_id}")
-            get_resp.raise_for_status()
-            current_alert = get_resp.json()
-            existing_tags = current_alert.get("tags", [])
-            # Avoid duplicate tags
-            updated_tags = list(set(existing_tags + tags_to_add))
-
-            payload = {"tags": updated_tags}
-            result_text = f"Attempting to add tags {tags_to_add} to alert {alert_id}..."
-
-        except httpx.HTTPStatusError as e:
-            return [types.TextContent(type="text", text=f"Error fetching alert {alert_id} to update tags: {e.response.status_code} - {e.response.text}")]
-        except Exception as e:
-             return [types.TextContent(type="text", text=f"Error preparing tag update for alert {alert_id}: {str(e)}")]
+        result_text = await _call_tag_alert(alert_id, tags_to_add)
 
     elif name == "adjust_alert_severity":
         new_severity = arguments.get("new_severity")
-        if not new_severity:
-            raise ValueError("Missing required argument: new_severity")
-
-        # Assuming severity is stored within alert 'params'
-        payload = {"params": {"severity": new_severity}} # Adjust path if severity is stored elsewhere
-        result_text = f"Attempting to change severity of alert {alert_id} to {new_severity}..."
+        # Optional: Add validation against the enum defined in the schema if desired, though MCP client should handle this
+        if not new_severity or not isinstance(new_severity, str):
+            raise ValueError("Missing or invalid required argument: new_severity (must be a string)")
+        result_text = await _call_adjust_alert_severity(alert_id, new_severity)
 
     else:
         raise ValueError(f"Unknown tool: {name}")
-
-    # Make the update request
-    try:
-        response = await http_client.post(api_path, json=payload)
-        response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
-        result_text += f"\nKibana API response: {response.status_code} - Update successful."
-
-    except httpx.RequestError as exc:
-        result_text += f"\nError calling Kibana API: {exc}"
-    except httpx.HTTPStatusError as exc:
-        result_text += f"\nKibana API returned error: {exc.response.status_code} - {exc.response.text}"
 
     return [types.TextContent(type="text", text=result_text)]
 
