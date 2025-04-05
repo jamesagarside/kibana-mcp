@@ -322,7 +322,8 @@ def setup_kibana_user(es_base_url, es_auth):
             "manage_index_templates",
             "manage_pipeline",
             "manage_ilm",
-            "read_ilm"
+            "read_ilm",
+            "manage_security"
         ],
         "indices": [
             {
@@ -341,6 +342,12 @@ def setup_kibana_user(es_base_url, es_auth):
                 ],
                 "privileges": ["all"],
                 "allow_restricted_indices": True # ESSENTIAL
+            },
+            {
+                # Privileges for internal alerting indices
+                "names": [".internal.alerts-*"],
+                "privileges": ["all"], # Grant all, including create_index
+                "allow_restricted_indices": True # These are restricted
             },
             {
                 "names": ["ilm-history*"],
