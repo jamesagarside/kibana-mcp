@@ -335,6 +335,76 @@ def wait_for_elasticsearch(es_base_url, es_auth):
     print_error(f"Elasticsearch API did not become available after {MAX_ES_WAIT_SECONDS} seconds.")
     return False
 
+def setup_kibana_user(es_base_url, es_auth):
+    """Creates a dedicated user and role in Elasticsearch for Kibana."""
+    print_info("Setting up dedicated Kibana user and role in Elasticsearch...")
+    role_name = "kibana_system_role"
+    user_name = KIBANA_SYSTEM_USER
+    password = KIBANA_SYSTEM_PASSWORD
+
+    role_url = f"{es_base_url}/_security/role/{role_name}"
+    user_url = f"{es_base_url}/_security/user/{user_name}"
+
+    # Define Kibana Role: Grant 'superuser' cluster privilege
+    # Also need index privileges for restricted indices
+    role_payload = {
+        "cluster": ["superuser"],
+        "indices": [
+            {
+                # Ensure access to all indices, including restricted system ones
+                "names": ["*"],
+                "privileges": ["all"],
+                "allow_restricted_indices": True
+            }
+        ]
+    }
+
+    # Define Kibana User, assigning ONLY the custom role
+    user_payload = {
+        "password" : password,
+        "roles" : [ role_name ], # Assign ONLY the custom role
+        "full_name" : "Internal Kibana System User (Custom Super Role) for MCP Test Env",
+        "email" : "kibana@example.com",
+        "enabled" : True
+    }
+
+    headers = {"Content-Type": "application/json"}
+    success = True
+    role_created_or_updated = False
+
+    # 1. Create/Update Role
+    try:
+        print_info(f"Creating/updating role: {role_name}")
+        response = requests.put(role_url, auth=es_auth, headers=headers, json=role_payload, verify=False, timeout=10)
+        if 200 <= response.status_code < 300:
+             print_info(f"Role '{role_name}' created/updated successfully.")
+             role_created_or_updated = True
+        else:
+            print_warning(f"Failed to create/update role '{role_name}' (HTTP {response.status_code}): {response.text}")
+            success = False
+    except requests.exceptions.RequestException as e:
+        print_error(f"Error creating/updating role '{role_name}': {e}")
+        success = False
+
+    # 2. Create/Update User only if Role succeeded
+    if role_created_or_updated:
+        try:
+            print_info(f"Creating/updating user: {user_name} with role '{role_name}'")
+            response = requests.put(user_url, auth=es_auth, headers=headers, json=user_payload, verify=False, timeout=10)
+            if not (200 <= response.status_code < 300):
+                print_warning(f"Failed to create/update user '{user_name}' (HTTP {response.status_code}): {response.text}")
+                success = False
+            else:
+                 print_info(f"User '{user_name}' created/updated successfully.")
+        except requests.exceptions.RequestException as e:
+            print_error(f"Error creating/updating user '{user_name}': {e}")
+            success = False
+    else:
+        print_info(f"Skipping user creation for '{user_name}' because role setup failed.")
+        success = False # Mark overall setup as failed if role failed
+
+    return success
+
 # --- Main Execution ---
 def main():
     print_info("Starting Kibana/Elasticsearch Test Environment Setup...")
@@ -362,6 +432,7 @@ def main():
     kibana_base_url = f"http://localhost:{kibana_port}"
     es_base_url = f"http://localhost:{es_port}"
     es_auth = (DEFAULT_USER, es_password)
+    kibana_auth = (KIBANA_SYSTEM_USER, KIBANA_SYSTEM_PASSWORD) # Reinstate kibana_auth
 
     # 3. Start Docker Services
     print_info("Starting Docker Compose services...")
@@ -372,7 +443,7 @@ def main():
 
     alerts_verified = False
     trigger_doc_written = False
-    kibana_user_setup = True # Assume success as we are not setting it up here
+    kibana_user_setup = False # Reset flag
     es_ready = False
 
     # 4. Wait for Elasticsearch
@@ -383,18 +454,27 @@ def main():
         run_compose_command(compose_cmd, "logs", "elasticsearch") # Show ES logs on failure
         sys.exit(1)
 
-    # 6. Wait for Kibana & Seed Data (Now uses kibana_auth)
-    if wait_for_kibana(kibana_base_url, es_auth): # Use es_auth (elastic) for checking Kibana status
+    # 5. Setup Kibana User in ES (Reinstate call)
+    print_info("Attempting to setup Kibana user in Elasticsearch...")
+    kibana_user_setup = setup_kibana_user(es_base_url, es_auth)
+
+    if not kibana_user_setup:
+        print_error("Failed to setup Kibana user in Elasticsearch.")
+        # Optionally stop here or let Kibana potentially fail later
+        # sys.exit(1)
+
+    # 6. Wait for Kibana & Seed Data (Use kibana_auth again)
+    if wait_for_kibana(kibana_base_url, kibana_auth):
         # Write the trigger document (using ES admin user)
         trigger_doc_written = write_trigger_document(es_base_url, es_auth)
         if not trigger_doc_written:
              print_warning("Failed to write trigger document, alert generation might not occur.")
 
-        # Create the rule (using ES admin user, as Kibana API calls under the hood will use the 'elastic' user)
-        rule_name = create_sample_alert_rule(kibana_base_url, es_auth)
+        # Create the rule (using Kibana system user via kibana_auth)
+        rule_name = create_sample_alert_rule(kibana_base_url, kibana_auth)
         if rule_name:
-            # Wait for alerts (using ES admin user)
-            alerts_verified = wait_for_alerts(kibana_base_url, es_auth, rule_name)
+            # Wait for alerts (using Kibana system user via kibana_auth)
+            alerts_verified = wait_for_alerts(kibana_base_url, kibana_auth, rule_name)
         else:
             print_warning("Skipping alert verification as rule creation failed or rule name unavailable.")
     else:
@@ -409,8 +489,9 @@ def main():
     print(f"View logs:      {' '.join(compose_cmd)} -f \"{COMPOSE_FILE}\" logs -f")
     print("\nAccess Details:")
     print(f" -> Elasticsearch: {es_base_url} (User: {DEFAULT_USER}, Pass: {es_password})")
-    print(f" -> Kibana:        {kibana_base_url} (Access via browser, or use elastic credentials for API)")
+    print(f" -> Kibana:        {kibana_base_url} (User: {KIBANA_SYSTEM_USER}, Pass: {KIBANA_SYSTEM_PASSWORD})") # Restore user details
     print("\nNote: Elasticsearch ready status: {'Success' if es_ready else 'Failed'}")
+    print(f"      Kibana user setup status: {'Success' if kibana_user_setup else 'Failed'}") # Restore setup status
     print(f"      Trigger document write status: {'Success' if trigger_doc_written else 'Failed'}")
     if alerts_verified:
         print("      Successfully verified that alerts were generated.")
