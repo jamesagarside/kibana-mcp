@@ -4,7 +4,7 @@ import sys # Keep sys for sys.exit
 from .config import (
     COMPOSE_FILE, DEFAULT_USER, KIBANA_SYSTEM_USER # Add other needed constants
 )
-from .utils import print_info, print_error, command_exists
+from .utils import print_info, print_error, print_warning, command_exists
 from .docker_utils import (
     get_docker_compose_cmd, run_compose_command, parse_compose_config
 )
