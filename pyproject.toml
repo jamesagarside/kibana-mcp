@@ -1,0 +1,17 @@
+[project]
+name = "kibana-mcp"
+version = "0.1.0"
+description = "Interacting with the SecOps functions of Kibana"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [ "mcp>=1.6.0",]
+[[project.authors]]
+name = "George Gilligan"
+email = "ggilligan12@gmail.com"
+
+[build-system]
+requires = [ "hatchling",]
+build-backend = "hatchling.build"
+
+[project.scripts]
+kibana-mcp = "kibana_mcp:main"
