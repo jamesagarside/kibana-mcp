@@ -85,7 +85,8 @@ def configure_client(): # Remove options parameter
         **auth_config
     )
 
-@server.shutdown
+# Remove the decorator, call manually in main's finally block
+# @server.shutdown
 async def close_client():
     """Close the httpx client on shutdown."""
     global http_client
@@ -141,20 +142,25 @@ async def main():
     # Configure the client before starting the server run loop
     configure_client()
 
-    async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="kibana-mcp",
-                server_version="0.1.0",
-                capabilities=server.get_capabilities(
-                    # No notifications needed for these tools
-                    notification_options=None,
-                    experimental_capabilities={},
+    try:
+        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+            await server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="kibana-mcp",
+                    server_version="0.1.0",
+                    capabilities=server.get_capabilities(
+                        # No notifications needed for these tools
+                        notification_options=None,
+                        experimental_capabilities={},
+                    ),
                 ),
-            ),
-        )
+            )
+    finally:
+        # Ensure client is closed even if server.run errors out
+        print("Closing HTTP client...") # Optional: for confirmation
+        await close_client()
 
 # Allows running the server directly using `python -m kibana_mcp` or `uv run kibana-mcp`
 if __name__ == "__main__":
