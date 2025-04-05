@@ -32,6 +32,10 @@ services:
       - ELASTICSEARCH_USERNAME=kibana_system # Use the actual built-in user
       - ELASTICSEARCH_PASSWORD=kibanapass # Must match KIBANA_SYSTEM_PASSWORD in seed_data.py
       - SERVER_SSL_ENABLED=false
+      # Set encryption keys to avoid warnings and potential issues (use a fixed key for testing)
+      - xpack.encryptedSavedObjects.encryptionKey=a_fixed_test_encryption_key_32_bytes
+      - xpack.reporting.encryptionKey=another_fixed_test_key_32_bytes # Also needed
+      - xpack.security.encryptionKey=yet_another_fixed_test_key_32b # For session security
     ports:
       - "5601:5601"
     networks:
