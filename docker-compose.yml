@@ -7,7 +7,7 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=true
-      - ELASTIC_PASSWORD=changeme # !!! CHANGE THIS PASSWORD IN A REAL ENVIRONMENT !!!
+      - ELASTIC_PASSWORD=elastic # !!! CHANGE THIS PASSWORD IN A REAL ENVIRONMENT !!!
       - xpack.security.http.ssl.enabled=false # Disable SSL for simplicity in local testing
       - xpack.security.transport.ssl.enabled=false
     ports:
@@ -15,7 +15,7 @@ services:
     networks:
       - elastic
     healthcheck:
-      test: ["CMD-SHELL", "curl -s -u elastic:changeme http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s"]
+      test: ["CMD-SHELL", "curl -s -u elastic:elastic http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s"]
       interval: 10s
       timeout: 10s
       retries: 12
@@ -29,7 +29,7 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - ELASTICSEARCH_USERNAME=elastic
-      - ELASTICSEARCH_PASSWORD=changeme # !!! USE THE SAME PASSWORD AS ABOVE !!!
+      - ELASTICSEARCH_PASSWORD=elastic # !!! USE THE SAME PASSWORD AS ABOVE !!!
       - SERVER_SSL_ENABLED=false # Optional: Disable SSL for Kibana server itself if not needed for testing
     ports:
       - "5601:5601"

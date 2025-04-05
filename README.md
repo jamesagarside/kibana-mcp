@@ -124,9 +124,10 @@ To test this server locally, you can use the provided Docker Compose configurati
 
 **Steps:**
 
-1.  **Set Passwords:**
+1.  **Check Passwords:**
     *   Open the `docker-compose.yml` file.
-    *   **Crucially, change the default password `changeme`** for both the `elasticsearch` and `kibana` services. Use a secure password and ensure it's the same for both.
+    *   The default password for the `elastic` user is set to `elastic` for both the `elasticsearch` and `kibana` services. You can change this if needed, but ensure it's the same in both places and update the healthcheck command if you do.
+    *   **Warning:** Do not use the default password in a production environment.
     *   *(Optional but recommended)*: If you want Elasticsearch data to persist across container restarts, uncomment the `volumes` section at the bottom of `docker-compose.yml` and the `volumes` line under the `elasticsearch` service definition.
 
 2.  **Start Services:**
@@ -140,12 +141,12 @@ To test this server locally, you can use the provided Docker Compose configurati
 3.  **Access Services:**
     *   **Elasticsearch:** Available at `http://localhost:9200`
     *   **Kibana:** Available at `http://localhost:5601`
-    *   Login to Kibana using the username `elastic` and the password you set in `docker-compose.yml`.
+    *   Login to Kibana using the username `elastic` and the password set in `docker-compose.yml` (default is `elastic`).
 
 4.  **Configure MCP Server:**
     *   When running the Kibana MCP server (e.g., `main.py`), configure it to connect to the local Kibana instance:
         *   Set the Kibana base URL to `http://localhost:5601`.
-        *   Use the username `elastic` and the password you set.
+        *   Use the username `elastic` and the password `elastic` (or the one you set).
 
 5.  **Testing:**
     *   You can now send requests to your MCP server, which will interact with the local Kibana instance.
