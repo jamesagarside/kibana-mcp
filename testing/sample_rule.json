@@ -8,6 +8,7 @@
     "timeField": "@timestamp",
     "aggType": "count",
     "groupBy": "top",
+    "termField": "agent.hostname",
     "termSize": 1,
     "thresholdComparator": ">",
     "threshold": [0],
