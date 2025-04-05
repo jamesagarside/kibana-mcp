@@ -1,21 +1,14 @@
 {
-  "name": "Test MCP Alert Rule (Auto-Created)",
-  "tags": ["mcp-test", "sample", "auto"],
-  "rule_type_id": ".index-threshold",
-  "consumer": "alerts",
-  "params": {
-    "index": ["mcp-trigger-docs"],
-    "timeField": "@timestamp",
-    "aggType": "count",
-    "groupBy": "top",
-    "termField": "agent.hostname",
-    "termSize": 1,
-    "thresholdComparator": ">",
-    "threshold": [0],
-    "timeWindowSize": 1,
-    "timeWindowUnit": "m"
-  },
-  "schedule": { "interval": "1m" },
-  "actions": [],
-  "notify_when": "onActiveAlert"
+  "name": "Test MCP Detection Rule (Auto-Created)",
+  "description": "Detects the MCP test trigger document via KQL.",
+  "enabled": true,
+  "type": "query",
+  "language": "kql",
+  "index": ["mcp-trigger-docs"],
+  "query": "message : \"MCP test trigger document\" and agent.hostname : \"test-host-123\"",
+  "risk_score": 47,
+  "severity": "low",
+  "tags": ["mcp-test", "detection", "auto", "security"],
+  "interval": "1m",
+  "from": "now-2m"
 } 
