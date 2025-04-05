@@ -36,8 +36,9 @@ TOOL_FUNCTION_MAP: Dict[str, ToolFunction] = {
 }
 # --- End Tool Function Mapping ---
 
-@server.initialize
-def configure_client(options: InitializationOptions):
+# Remove the decorator, we will call this function manually
+# @server.initialize
+def configure_client(): # Remove options parameter
     """
     Configure the httpx client after initialization using env vars.
     Supports API Key (KIBANA_API_KEY) or Username/Password (KIBANA_USERNAME, KIBANA_PASSWORD).
@@ -137,6 +138,9 @@ async def handle_call_tool(
 
 async def main():
     """Main entry point to run the server."""
+    # Configure the client before starting the server run loop
+    configure_client()
+
     async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream,
