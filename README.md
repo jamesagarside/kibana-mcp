@@ -115,102 +115,73 @@ Upon launching, the Inspector will display a URL that you can access in your bro
 
 ## Local Development & Testing
 
-To test this server locally, you can use the provided Docker Compose configuration located in the `testing/` directory to spin up local Elasticsearch and Kibana instances.
+The `testing/` directory contains scripts and configuration to spin up local Elasticsearch and Kibana instances using Docker Compose and automatically seed them with a sample alert rule.
 
 **Prerequisites:**
 
+*   [Python 3](https://www.python.org/)
 *   [Docker](https://docs.docker.com/get-docker/)
 *   [Docker Compose](https://docs.docker.com/compose/install/)
+*   Python dependencies for testing scripts: Install using
+    ```bash
+    pip install -r requirements-dev.txt
+    ```
 
 **Quickstart:**
 
-1.  Navigate to the `testing/` directory:
+1.  Install development dependencies:
+    ```bash
+    pip install -r requirements-dev.txt
+    ```
+2.  Navigate to the `testing/` directory:
     ```bash
     cd testing
     ```
-2.  Make the quickstart script executable (if you haven't already):
+3.  Make the quickstart script executable (if needed):
     ```bash
     chmod +x quickstart-test-env.sh
     ```
-3.  Run the quickstart script:
+4.  Run the quickstart script:
     ```bash
     ./quickstart-test-env.sh
     ```
-4.  The script will start the containers and print the access URLs and credentials.
-5.  Remember to navigate back to the root directory (`cd ..`) before running the MCP server.
+5.  The script (`seed_data.py`) will perform checks, start the containers, wait for Kibana, create a sample rule, and print the access URLs/credentials.
+6.  Navigate back to the root directory (`cd ..`) before running the MCP server.
 
-**Manual Setup Steps (if not using the script):**
+**Manual Steps (Overview):**
 
-1.  **Check Passwords:**
-    *   Open the `testing/docker-compose.yml` file.
-    *   The default password for the `elastic` user is set to `elastic`. You can change this if needed (ensure it's the same for both services and update the healthcheck).
-    *   **Warning:** Do not use the default password in a production environment.
-    *   *(Optional)*: Handle persistent volumes as needed within `testing/docker-compose.yml`.
+The `testing/quickstart-test-env.sh` script executes `testing/seed_data.py`. This Python script performs the following:
+1.  Checks for Docker & Docker Compose.
+2.  Parses `testing/docker-compose.yml` for configuration (ports, password).
+3.  Runs `docker compose up -d` (using the correct command for v1/v2).
+4.  Waits for the Kibana API (`http://localhost:5601/api/status`) to be available.
+5.  Reads `testing/sample_rule.json`.
+6.  Sends a POST request to `http://localhost:5601/api/alerting/rule` to create the rule.
+7.  Prints status, URLs, credentials, and shutdown commands.
 
-2.  **Start Services:**
-    *   Navigate to the `testing/` directory.
-    *   Run the command:
-        ```bash
-        # Use 'docker compose' if you have v2
-        docker compose -f docker-compose.yml up -d
-        # Or 'docker-compose' if you have v1
-        # docker-compose -f docker-compose.yml up -d
-        ```
+**Stopping the Environment:**
 
-3.  **Access Services:**
-    *   **Elasticsearch:** `http://localhost:9200` (or the port defined in `testing/docker-compose.yml`)
-    *   **Kibana:** `http://localhost:5601` (or the port defined in `testing/docker-compose.yml`)
-    *   Login using username `elastic` and the password from `testing/docker-compose.yml`.
+*   Run the shutdown command printed by the script (e.g., `docker compose -f testing/docker-compose.yml down`).
 
-4.  **Configure MCP Server:**
-    *   Set the environment variables **before** running the server script (from the **root** directory):
-        *   `KIBANA_URL=http://localhost:5601`
-        *   Set `KIBANA_API_KEY` **or** (`KIBANA_USERNAME` and `KIBANA_PASSWORD`). For the local setup, use:
-            *   `KIBANA_USERNAME=elastic`
-            *   `KIBANA_PASSWORD=elastic`
+## Running the Server
 
-5.  **Run the Server:**
-    *   From the **root** directory:
+1.  Ensure the local test environment is running (or configure environment variables for your target Kibana).
+2.  Set the required environment variables (`KIBANA_URL` and authentication variables) from the **root** directory.
+    *   For local testing (after running quickstart):
         ```bash
         export KIBANA_URL=http://localhost:5601
         export KIBANA_USERNAME=elastic
         export KIBANA_PASSWORD=elastic
-        # Or export KIBANA_API_KEY=...
-
-        # Assuming your package/module is runnable
-        python -m src.kibana_mcp.server
         ```
-
-6.  **Testing:**
-    *   Send requests to your MCP server (stdin/stdout).
-
-7.  **Stop Services:**
-    *   Navigate to the `testing/` directory.
-    *   Run:
-        ```bash
-        docker compose -f docker-compose.yml down
-        # Or
-        # docker-compose -f docker-compose.yml down
-        ```
-
-## Running the Server
-
-Set the required environment variables (`KIBANA_URL` and authentication variables) as described above.
-
-Then, from the **root** directory, run the server module:
-
-```bash
-# Example:
-pip install -r requirements.txt # If you have one
-
-export KIBANA_URL=http://your-kibana-instance:5601
-export KIBANA_API_KEY="YOUR_BASE64_ENCODED_API_KEY"
-# Or:
-# export KIBANA_USERNAME=your_user
-# export KIBANA_PASSWORD=your_pass
-
-python -m src.kibana_mcp.server
-```
+    *   For other environments, set `KIBANA_URL` and either `KIBANA_API_KEY` or (`KIBANA_USERNAME`/`KIBANA_PASSWORD`).
+3.  Install main server dependencies (if you have a `requirements.txt`):
+    ```bash
+    # pip install -r requirements.txt
+    ```
+4.  From the **root** directory, run the server module:
+    ```bash
+    python -m src.kibana_mcp.server
+    ```
 
 ## Available Tools
 
