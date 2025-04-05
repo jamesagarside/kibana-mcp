@@ -12,7 +12,7 @@ from .es_kb_setup import (
     wait_for_elasticsearch, wait_for_kibana, setup_kibana_user
 )
 from .detection import (
-    create_sample_detection_rule, write_trigger_document, wait_for_signals
+    create_sample_detection_rule, write_auth_data, wait_for_signals
 )
 
 # ==============================================================================
@@ -81,14 +81,14 @@ def main():
         # Create the rule FIRST
         rule_id = create_sample_detection_rule(kibana_base_url, kibana_api_auth)
         if rule_id:
-            # Write the trigger document SECOND
-            trigger_doc_written = write_trigger_document(es_base_url, es_auth)
+            # Write the auth data SECOND
+            trigger_doc_written = write_auth_data(es_base_url, es_auth)
             if not trigger_doc_written:
-                 print_warning("Failed to write trigger document, signal generation might not occur.")
+                 print_warning("Failed to write auth data, signal generation might not occur.")
             # Wait for signals THIRD
             signals_verified = wait_for_signals(kibana_base_url, kibana_api_auth, rule_id)
         else:
-            print_warning("Skipping trigger document write and signal verification as rule creation failed or rule ID unavailable.")
+            print_warning("Skipping auth data write and signal verification as rule creation failed or rule ID unavailable.")
     else:
         print_warning("Kibana API did not become available, skipping rule creation and test.")
 

@@ -1,0 +1,5 @@
+{"event": {"action": "login_success", "outcome": "success"}, "source": {"ip": "192.168.1.10"}, "user": {"name": "alice"}}
+{"event": {"action": "login_failure", "outcome": "failure"}, "source": {"ip": "10.0.0.55"}, "user": {"name": "bob"}}
+{"event": {"action": "login_failure", "outcome": "failure"}, "source": {"ip": "10.0.0.55"}, "user": {"name": "bob"}}
+{"event": {"action": "login_failure", "outcome": "failure"}, "source": {"ip": "10.0.0.55"}, "user": {"name": "bob"}}
+{"event": {"action": "login_success", "outcome": "success"}, "source": {"ip": "192.168.1.20"}, "user": {"name": "charlie"}} 

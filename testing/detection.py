@@ -2,12 +2,15 @@ import time
 import json
 import requests
 import datetime
+from pathlib import Path
 
 # Use relative imports
 from .utils import print_info, print_error, print_warning
 from .config import (
-    SAMPLE_RULE_FILE, TRIGGER_DOC_FILE, MAX_ALERT_WAIT_SECONDS, ALERT_CHECK_INTERVAL_SECONDS
+    SAMPLE_RULE_FILE, MAX_ALERT_WAIT_SECONDS, ALERT_CHECK_INTERVAL_SECONDS
 )
+
+AUTH_EVENTS_FILE = Path(__file__).parent.resolve() / "auth_events.ndjson"
 
 # ==============================================================================
 # --- Detection Rule / Signal Management ---
@@ -80,57 +83,68 @@ def create_sample_detection_rule(kibana_base_url, kibana_auth):
         print_error(f"An unexpected error occurred creating the rule: {e}")
     return None # Return None on any error
 
-def write_trigger_document(es_base_url, es_auth):
-    """Writes a document (from JSON file) to Elasticsearch to trigger the sample detection rule."""
-    if not TRIGGER_DOC_FILE.exists():
-        print_error(f"Trigger document file not found: {TRIGGER_DOC_FILE}")
+def write_auth_data(es_base_url, es_auth):
+    """Writes sample authentication events (from NDJSON file) to Elasticsearch."""
+    if not AUTH_EVENTS_FILE.exists():
+        print_error(f"Auth events file not found: {AUTH_EVENTS_FILE}")
         return False
 
     url = f"{es_base_url}/_bulk"
-    index_name = "mcp-trigger-docs"
-    print_info(f"Writing trigger document from {TRIGGER_DOC_FILE.name} to Elasticsearch index '{index_name}'...")
+    # Use a data stream naming convention
+    index_name = "mcp-auth-logs-default"
+    print_info(f"Writing auth events from {AUTH_EVENTS_FILE.name} to Elasticsearch index '{index_name}'...")
 
+    bulk_data = ""
     try:
-        with open(TRIGGER_DOC_FILE, 'r') as f:
-            trigger_doc_base = json.load(f)
+        with open(AUTH_EVENTS_FILE, 'r') as f:
+            for line in f:
+                if not line.strip(): continue # Skip empty lines
+                try:
+                    doc = json.loads(line)
+                    # Add timestamp and action metadata for bulk API
+                    action_meta = json.dumps({"index": {"_index": index_name}})
+                    doc["@timestamp"] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+                    bulk_data += action_meta + "\n" + json.dumps(doc) + "\n"
+                except json.JSONDecodeError as e:
+                    print_warning(f"Skipping invalid JSON line in {AUTH_EVENTS_FILE.name}: {line.strip()} - Error: {e}")
 
-        trigger_doc_base['@timestamp'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-
-        action_meta = json.dumps({"index": {"_index": index_name}})
-        source_doc = json.dumps(trigger_doc_base)
-        bulk_data = f"{action_meta}\n{source_doc}\n"
+        if not bulk_data:
+             print_warning(f"No valid data found in {AUTH_EVENTS_FILE.name}.")
+             return False
 
         headers = {"Content-Type": "application/x-ndjson"}
-
         response = requests.post(
             url,
             auth=es_auth,
             headers=headers,
             data=bulk_data.encode('utf-8'),
             verify=False,
-            timeout=10
+            timeout=15 # Increased timeout slightly for potentially larger bulk request
         )
 
         if response.status_code == 200:
             response_json = response.json()
             if response_json.get("errors"):
-                print_warning(f"Elasticsearch Bulk API reported errors: {response_json}")
+                # Find first error for better reporting
+                first_error = "Unknown error" 
+                try:
+                    first_error = response_json["items"][0]["index"]["error"]["reason"]
+                except (IndexError, KeyError, TypeError):
+                    pass
+                print_warning(f"Elasticsearch Bulk API reported errors. First error: {first_error}. Full response: {response_json}")
                 return False
             else:
-                print_info("Successfully wrote trigger document to Elasticsearch.")
+                item_count = len(response_json.get("items", []))
+                print_info(f"Successfully wrote {item_count} auth event(s) to Elasticsearch.")
                 return True
         else:
-            print_warning(f"Failed to write trigger document (HTTP {response.status_code}). Response: {response.text}")
+            print_warning(f"Failed to write auth events (HTTP {response.status_code}). Response: {response.text}")
             return False
 
-    except FileNotFoundError:
-        print_error(f"Trigger document file not found: {TRIGGER_DOC_FILE}")
-    except json.JSONDecodeError as e:
-        print_error(f"Failed to parse trigger document file {TRIGGER_DOC_FILE}: {e}")
-    except requests.exceptions.RequestException as e:
-        print_error(f"Failed to send request to Elasticsearch _bulk API: {e}")
+    except FileNotFoundError: # Should be caught by initial check
+        print_error(f"Auth events file not found: {AUTH_EVENTS_FILE}")
     except Exception as e:
-        print_error(f"An unexpected error occurred writing trigger document: {e}")
+        print_error(f"An unexpected error occurred writing auth events: {e}")
 
     return False
 

@@ -1,14 +1,18 @@
 {
-  "name": "Test MCP Detection Rule (Auto-Created)",
-  "description": "Detects the MCP test trigger document via KQL.",
+  "name": "Multiple Login Failures from Same IP (MCP Test)",
+  "description": "Detects 3 or more login failures from the same source IP address within 5 minutes.",
   "enabled": true,
-  "type": "query",
+  "type": "threshold",
   "language": "kuery",
-  "index": ["mcp-trigger-docs"],
-  "query": "message : \"MCP test trigger document\" and agent.hostname : \"test-host-123\"",
-  "risk_score": 47,
-  "severity": "low",
-  "tags": ["mcp-test", "detection", "auto", "security"],
-  "interval": "1m",
-  "from": "now-2m"
+  "index": ["mcp-auth-logs-*"],
+  "query": "event.action : login_failure and event.outcome : failure",
+  "threshold": {
+    "field": "source.ip",
+    "value": 3
+  },
+  "risk_score": 50,
+  "severity": "medium",
+  "tags": ["mcp-test", "detection", "auto", "security", "authentication"],
+  "interval": "5m",
+  "from": "now-10m"
 } 
