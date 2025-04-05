@@ -354,10 +354,10 @@ def setup_kibana_user(es_base_url, es_auth):
         ]
     }
 
-    # Define Kibana User, assigning the specific role
+    # Define Kibana User, assigning the specific role AND the built-in kibana_admin role
     user_payload = {
         "password" : password,
-        "roles" : [ role_name ], # Assign the role we are creating
+        "roles" : [ role_name, "kibana_admin" ], # Assign custom role AND kibana_admin
         "full_name" : "Internal Kibana System User for MCP Test Env",
         "email" : "kibana@example.com",
         "enabled" : True
