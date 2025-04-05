@@ -6,11 +6,13 @@ import json
 import requests
 import yaml  # Requires PyYAML
 from pathlib import Path
+import datetime
 
 # --- Configuration ---
 SCRIPT_DIR = Path(__file__).parent.resolve()
 COMPOSE_FILE = SCRIPT_DIR / "docker-compose.yml"
 SAMPLE_RULE_FILE = SCRIPT_DIR / "sample_rule.json"
+TRIGGER_DOC_FILE = SCRIPT_DIR / "trigger_document.json"
 DEFAULT_USER = "elastic"
 MAX_KIBANA_WAIT_SECONDS = 180  # 3 minutes
 KIBANA_CHECK_INTERVAL_SECONDS = 5
@@ -234,6 +236,67 @@ def wait_for_alerts(kibana_base_url, auth, rule_name):
     print_error(f"Timed out after {MAX_ALERT_WAIT_SECONDS}s waiting for alerts from rule '{rule_name}'.")
     return False
 
+def write_trigger_document(es_base_url, auth):
+    """Writes a document (from JSON file) to Elasticsearch to trigger the sample alert rule."""
+    if not TRIGGER_DOC_FILE.exists():
+        print_error(f"Trigger document file not found: {TRIGGER_DOC_FILE}")
+        return False
+
+    url = f"{es_base_url}/_bulk"
+    index_name = ".kibana_task_manager_trigger_docs" # Matches the rule's index pattern
+    print_info(f"Writing trigger document from {TRIGGER_DOC_FILE.name} to Elasticsearch index '{index_name}'...")
+
+    try:
+        # Read the base document from the JSON file
+        with open(TRIGGER_DOC_FILE, 'r') as f:
+            trigger_doc_base = json.load(f)
+
+        # Add current timestamp
+        trigger_doc_base['@timestamp'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+
+        # Elasticsearch Bulk API format: action_and_meta_data\n optional_source\n
+        action_meta = json.dumps({"index": {"_index": index_name}})
+        source_doc = json.dumps(trigger_doc_base)
+
+        bulk_data = f"{action_meta}\n{source_doc}\n"
+
+        headers = {
+            "Content-Type": "application/x-ndjson"
+        }
+
+        response = requests.post(
+            url,
+            auth=auth,
+            headers=headers,
+            data=bulk_data.encode('utf-8'), # Send raw bytes
+            verify=False, # For local testing
+            timeout=10
+        )
+
+        if response.status_code == 200:
+            response_json = response.json()
+            if response_json.get("errors"):
+                print_warning(f"Elasticsearch Bulk API reported errors: {response_json}")
+                return False
+            else:
+                print_info("Successfully wrote trigger document to Elasticsearch.")
+                return True
+        else:
+            print_warning(f"Failed to write trigger document (HTTP {response.status_code}). Response: {response.text}")
+            return False
+
+    except FileNotFoundError:
+        # Should be caught by the check at the start, but belt-and-suspenders
+        print_error(f"Trigger document file not found: {TRIGGER_DOC_FILE}")
+    except json.JSONDecodeError as e:
+        print_error(f"Failed to parse trigger document file {TRIGGER_DOC_FILE}: {e}")
+    except requests.exceptions.RequestException as e:
+        print_error(f"Failed to send request to Elasticsearch _bulk API: {e}")
+    except Exception as e:
+        print_error(f"An unexpected error occurred writing trigger document: {e}")
+
+    return False
+
 # --- Main Execution ---
 def main():
     print_info("Starting Kibana/Elasticsearch Test Environment Setup...")
@@ -270,10 +333,18 @@ def main():
         sys.exit(1)
 
     alerts_verified = False
+    trigger_doc_written = False
     # 4. Wait for Kibana & Seed Data
     if wait_for_kibana(kibana_base_url, auth):
+        # Write the trigger document first to ensure data exists
+        trigger_doc_written = write_trigger_document(es_base_url, auth)
+        if not trigger_doc_written:
+             print_warning("Failed to write trigger document, alert generation might not occur.")
+
+        # Then create the rule
         rule_name = create_sample_alert_rule(kibana_base_url, auth)
         if rule_name:
+            # Now wait for alerts triggered by the document/rule
             alerts_verified = wait_for_alerts(kibana_base_url, auth, rule_name)
         else:
             print_warning("Skipping alert verification as rule creation failed or rule name unavailable.")
@@ -294,6 +365,7 @@ def main():
     print(f" -> Username: {DEFAULT_USER}")
     print(f" -> Password: {es_password} (from {COMPOSE_FILE.name})")
     print("\nNote: Sample alert rule creation attempted.")
+    print(f"      Trigger document write status: {'Success' if trigger_doc_written else 'Failed'}") # Report trigger status
     if alerts_verified:
         print("      Successfully verified that alerts were generated.")
     else:
