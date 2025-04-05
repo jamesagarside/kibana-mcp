@@ -202,8 +202,8 @@ def wait_for_alerts(kibana_base_url, kibana_auth, rule_name):
         "sort_order": "desc",
         # Use filter instead of search for exact match on generated_by rule name
         # Filter syntax might depend on exact Kibana version
-        # Using triple quotes for the f-string to handle inner double quotes easily
-        "filter": f'''alert.attributes.ruleName: "{rule_name}" or kibana.alert.rule.name: "{rule_name}"'''
+        # Build filter string using concatenation
+        "filter": 'alert.attributes.ruleName: "' + rule_name + '" or kibana.alert.rule.name: "' + rule_name + '"'
     }
     headers = {
         "kbn-xsrf": "true",
@@ -336,7 +336,7 @@ def wait_for_elasticsearch(es_base_url, es_auth):
     return False
 
 def set_builtin_user_password(es_base_url, es_auth, username, password):
-    """Sets the password for a built-in Elasticsearch user."
+    """Sets the password for a built-in Elasticsearch user."""
     # Cannot modify roles for reserved users, only password.
     print_info(f"Setting password for built-in user: {username}...")
     url = f"{es_base_url}/_security/user/{username}/_password"
@@ -440,20 +440,26 @@ def main():
     print(" Elasticsearch & Kibana Quickstart Setup Complete!")
     print("-" * 53 + "\n")
     print("Services are running in the background.")
-    print(f"Check status:   {' '.join(compose_cmd)} -f \"{COMPOSE_FILE}\" ps")
-    print(f"View logs:      {' '.join(compose_cmd)} -f \"{COMPOSE_FILE}\" logs -f")
+    compose_ps_cmd = ' '.join(compose_cmd) + f' -f "{COMPOSE_FILE}" ps'
+    compose_logs_cmd = ' '.join(compose_cmd) + f' -f "{COMPOSE_FILE}" logs -f'
+    compose_down_cmd = ' '.join(compose_cmd) + f' -f "{COMPOSE_FILE}" down'
+    print(f"Check status:   {compose_ps_cmd}")
+    print(f"View logs:      {compose_logs_cmd}")
     print("\nAccess Details:")
     print(f" -> Elasticsearch: {es_base_url} (User: {DEFAULT_USER}, Pass: {es_password})")
     print(f" -> Kibana:        {kibana_base_url} (Uses built-in 'kibana_system', Pass: {KIBANA_SYSTEM_PASSWORD})")
-    print(f"\nNote: Elasticsearch ready status: {'Success' if es_ready else 'Failed'}")
-    print(f"      Kibana built-in user password set status: {'Success' if kibana_user_setup else 'Failed'}")
-    print(f"      Trigger document write status: {'Success' if trigger_doc_written else 'Failed'}")
+    print("\nNote:") # Simplified
+    es_status = 'Success' if es_ready else 'Failed'
+    pw_status = 'Success' if kibana_user_setup else 'Failed'
+    trig_status = 'Success' if trigger_doc_written else 'Failed'
+    print(f"      Elasticsearch ready status: {es_status}")
+    print(f"      Kibana built-in user password set status: {pw_status}")
+    print(f"      Trigger document write status: {trig_status}")
     if alerts_verified:
         print("      Successfully verified that alerts were generated.")
     else:
-        print("      WARNING: Could not verify that alerts were generated within the time limit.")
-        print("               You may need to wait longer or check Kibana manually.")
-    print(f"\nTo stop services: {' '.join(compose_cmd)} -f \"{COMPOSE_FILE}\" down")
+        print("      WARNING: Could not verify alerts within time limit.") # Simplified
+    print(f"\nTo stop services: {compose_down_cmd}")
     print("-" * 53)
 
 if __name__ == "__main__":
