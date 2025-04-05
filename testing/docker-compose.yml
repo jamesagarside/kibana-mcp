@@ -28,9 +28,9 @@ services:
         condition: service_healthy # Wait for Elasticsearch to be healthy
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=elastic
-      - ELASTICSEARCH_PASSWORD=elastic # !!! USE THE SAME PASSWORD AS ABOVE !!!
-      - SERVER_SSL_ENABLED=false # Optional: Disable SSL for Kibana server itself if not needed for testing
+      - ELASTICSEARCH_USERNAME=kibana_system_user
+      - ELASTICSEARCH_PASSWORD=kibanapass # Must match KIBANA_SYSTEM_PASSWORD in seed_data.py
+      - SERVER_SSL_ENABLED=false
     ports:
       - "5601:5601"
     networks:
