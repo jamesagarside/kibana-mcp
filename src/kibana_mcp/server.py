@@ -2,7 +2,7 @@ import asyncio
 import os
 import httpx
 import base64
-from typing import List
+from typing import List, Optional, Dict, Callable, Awaitable
 
 # Ensure correct import path if models was moved
 from mcp.server.models import InitializationOptions
@@ -13,7 +13,7 @@ import mcp.server.stdio
 from pydantic import AnyUrl
 
 # Import tool handlers
-from .tools import handle_list_tools, _call_tag_alert, _call_adjust_alert_severity
+from .tools import handle_list_tools, _call_tag_alert, _call_adjust_alert_severity, _call_get_alerts
 # Import new resource handlers
 from .resources import handle_list_resources, handle_read_resource
 # Import new prompt handlers
@@ -25,25 +25,64 @@ server = Server("kibana-mcp")
 # Initialize httpx client (configured later)
 http_client: httpx.AsyncClient | None = None
 
+# --- Tool Function Mapping ---
+# Define a type hint for async tool functions
+ToolFunction = Callable[[httpx.AsyncClient, Dict], Awaitable[str]]
+
+TOOL_FUNCTION_MAP: Dict[str, ToolFunction] = {
+    "tag_alert": _call_tag_alert,
+    "adjust_alert_severity": _call_adjust_alert_severity,
+    "get_alerts": _call_get_alerts,
+}
+# --- End Tool Function Mapping ---
+
 @server.initialize
 def configure_client(options: InitializationOptions):
-    """Configure the httpx client after initialization using env vars."""
+    """
+    Configure the httpx client after initialization using env vars.
+    Supports API Key (KIBANA_API_KEY) or Username/Password (KIBANA_USERNAME, KIBANA_PASSWORD).
+    API Key is prioritized if both are provided.
+    """
     global http_client
     kibana_url = os.getenv("KIBANA_URL")
-    # Expecting the value to be already Base64 encoded "id:secret"
-    encoded_api_key = os.getenv("KIBANA_API_KEY") 
+    # Expecting the API key value to be already Base64 encoded "id:secret"
+    encoded_api_key = os.getenv("KIBANA_API_KEY")
+    kibana_username = os.getenv("KIBANA_USERNAME")
+    kibana_password = os.getenv("KIBANA_PASSWORD")
 
     if not kibana_url:
         raise ValueError("KIBANA_URL environment variable not set.")
-    if not encoded_api_key:
-        raise ValueError("KIBANA_API_KEY environment variable not set (expected Base64 encoded 'id:secret').")
 
     headers = {
-        "Authorization": f"ApiKey {encoded_api_key}", # Use the env var directly
         "kbn-xsrf": "true", # Kibana requires this header
         "Content-Type": "application/json"
     }
-    http_client = httpx.AsyncClient(base_url=kibana_url, headers=headers, timeout=30.0)
+    auth_config = {}
+    auth_method_used = "None"
+
+    # Prioritize API Key
+    if encoded_api_key:
+        print("Using API Key authentication.")
+        # Prepend "ApiKey " if it's not already there (common mistake)
+        auth_header = encoded_api_key if encoded_api_key.strip().startswith("ApiKey ") else f"ApiKey {encoded_api_key.strip()}"
+        headers["Authorization"] = auth_header
+        auth_method_used = "API Key"
+    elif kibana_username and kibana_password:
+        print(f"Using Basic authentication for user: {kibana_username}")
+        auth_config["auth"] = (kibana_username, kibana_password)
+        auth_method_used = "Username/Password"
+    else:
+        raise ValueError("Kibana authentication not configured. Set either KIBANA_API_KEY or both KIBANA_USERNAME and KIBANA_PASSWORD environment variables.")
+
+    print(f"Configuring HTTP client for Kibana at {kibana_url} using {auth_method_used}.")
+    # Consider making verify configurable via env var as well for non-local environments
+    http_client = httpx.AsyncClient(
+        base_url=kibana_url,
+        headers=headers,
+        timeout=30.0,
+        verify=False, # Added verify=False for local testing ease, set True for production
+        **auth_config
+    )
 
 @server.shutdown
 async def close_client():
@@ -69,37 +108,32 @@ async def handle_call_tool(
     name: str, arguments: dict | None
 ) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
     """
-    Handle tool execution requests for Kibana alerts by dispatching to specific handlers.
+    Handle tool execution requests by dispatching to the correct function based on the tool name.
     """
     global http_client
     if not http_client:
-        raise RuntimeError("HTTP client not initialized. KIBANA_URL and KIBANA_API_KEY must be set.")
+        # This should technically not happen if initialization succeeded
+        raise RuntimeError("HTTP client not initialized. Ensure Kibana connection details are correctly set in environment variables.")
     if not arguments:
-        raise ValueError("Missing arguments")
+        # Allow tools that might not need arguments, let the specific tool function validate
+        arguments = {} # Provide an empty dict if None
 
-    alert_id = arguments.get("alert_id")
-    if not alert_id or not isinstance(alert_id, str):
-        raise ValueError("Missing or invalid required argument: alert_id (must be a string)")
-
-    result_text = ""
-
-    if name == "tag_alert":
-        tags_to_add = arguments.get("tags")
-        if not tags_to_add or not isinstance(tags_to_add, list) or not all(isinstance(tag, str) for tag in tags_to_add):
-            raise ValueError("Missing or invalid required argument: tags (must be a list of strings)")
-        result_text = await _call_tag_alert(http_client, alert_id, tags_to_add)
-
-    elif name == "adjust_alert_severity":
-        new_severity = arguments.get("new_severity")
-        # Optional: Add validation against the enum defined in the schema if desired, though MCP client should handle this
-        if not new_severity or not isinstance(new_severity, str):
-            raise ValueError("Missing or invalid required argument: new_severity (must be a string)")
-        result_text = await _call_adjust_alert_severity(http_client, alert_id, new_severity)
-
+    if name in TOOL_FUNCTION_MAP:
+        try:
+            # Pass the http_client and the arguments dictionary to the specific tool function
+            result_text = await TOOL_FUNCTION_MAP[name](http_client=http_client, **arguments)
+        except TypeError as e:
+            # Catch errors if arguments don't match the function signature (e.g., missing required args)
+            raise ValueError(f"Invalid arguments provided for tool '{name}': {e}")
+        except Exception as e:
+            # Catch other potential errors from the tool function itself
+            # Log the full error for debugging if possible
+            print(f"Error executing tool '{name}': {e}")
+            raise RuntimeError(f"An error occurred while executing tool '{name}'.")
     else:
         raise ValueError(f"Unknown tool: {name}")
 
-    return [types.TextContent(type="text", text=result_text)]
+    return [types.TextContent(type="text", text=str(result_text))] # Ensure result is string
 
 async def main():
     """Main entry point to run the server."""

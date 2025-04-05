@@ -144,32 +144,51 @@ To test this server locally, you can use the provided Docker Compose configurati
     *   Login to Kibana using the username `elastic` and the password set in `docker-compose.yml` (default is `elastic`).
 
 4.  **Configure MCP Server:**
-    *   When running the Kibana MCP server (e.g., `main.py`), configure it to connect to the local Kibana instance:
-        *   Set the Kibana base URL to `http://localhost:5601`.
-        *   Use the username `elastic` and the password `elastic` (or the one you set).
+    *   When running the Kibana MCP server, configure it to connect to the Kibana instance by setting the following environment variables **before** running the server script:
+        *   `KIBANA_URL`: The base URL of your Kibana instance (e.g., `http://localhost:5601` for the local Docker setup).
+        *   Choose **one** authentication method:
+            *   **API Key (Recommended):**
+                *   `KIBANA_API_KEY`: A Kibana API Key (the Base64 encoded `id:key` string). You can create these in Kibana under Management -> Security -> API Keys.
+            *   **Username/Password:**
+                *   `KIBANA_USERNAME`: Your Kibana username (e.g., `elastic` for the local Docker setup).
+                *   `KIBANA_PASSWORD`: Your Kibana password (e.g., `elastic` for the local Docker setup).
+        *   *Note:* If both `KIBANA_API_KEY` and `KIBANA_USERNAME`/`KIBANA_PASSWORD` are set, the API Key will be used.
 
-5.  **Testing:**
-    *   You can now send requests to your MCP server, which will interact with the local Kibana instance.
-    *   You might need to manually create some sample alerts or data within Kibana via its UI (`http://localhost:5601`) to test the `get_alerts`, `tag_alert`, and `adjust_alert_severity` tools effectively.
+5.  **Run the Server:**
+    *   (Add instructions here on how to install dependencies and run the main server script, e.g., using `python -m src.kibana_mcp.server` or similar)
+    *   Example using environment variables:
+        ```bash
+        export KIBANA_URL=http://localhost:5601
+        # Using API Key
+        export KIBANA_API_KEY="YOUR_BASE64_ENCODED_API_KEY"
+        # OR Using Username/Password
+        # export KIBANA_USERNAME=elastic
+        # export KIBANA_PASSWORD=elastic
 
-6.  **Stop Services:**
-    *   When you're finished testing, stop the containers:
-        ```bash
-        docker-compose down
+        # Assuming your package/module is runnable
+        python -m src.kibana_mcp.server
         ```
-    *   If you configured persistent volumes and want to remove the Elasticsearch data volume, add the `-v` flag:
-        ```bash
-        docker-compose down -v
-        ```
+
+6.  **Testing:**
+    *   You can now send requests to your MCP server (which listens on stdin/stdout), which will interact with the configured Kibana instance.
 
 ## Running the Server
 
-(Add instructions here on how to install dependencies and run the main server script, e.g., `main.py`)
+Set the required environment variables (`KIBANA_URL` and either `KIBANA_API_KEY` or `KIBANA_USERNAME`/`KIBANA_PASSWORD`) as described in the "Local Development & Testing" section.
+
+Then, run the server module:
 
 ```bash
 # Example:
-pip install -r requirements.txt
-python src/kibana_mcp/main.py --kibana-url <your_kibana_url> --username <user> --password <pass>
+pip install -r requirements.txt # If you have one
+
+export KIBANA_URL=http://your-kibana-instance:5601
+export KIBANA_API_KEY="YOUR_BASE64_ENCODED_API_KEY"
+# Or:
+# export KIBANA_USERNAME=your_user
+# export KIBANA_PASSWORD=your_pass
+
+python -m src.kibana_mcp.server
 ```
 
 ## Available Tools
