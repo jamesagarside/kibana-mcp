@@ -27,18 +27,39 @@ This server exposes the following tools to MCP clients:
 To connect to your Kibana instance, the server requires the following environment variables to be set:
 
 *   `KIBANA_URL`: The base URL of your Kibana instance (e.g., `https://your-kibana.example.com:5601`).
-*   `KIBANA_API_KEY`: A Kibana API key in the format `id:secret`. Generate this in Kibana under Stack Management -> API Keys. Ensure the key has permissions to read and update alerts (e.g., appropriate privileges for the Alerting plugin).
+
+And **one** of the following authentication methods:
+
+*   **API Key (Recommended):**
+    *   `KIBANA_API_KEY`: A Base64 encoded Kibana API key. Generate this in Kibana under Stack Management -> API Keys. Ensure the key has permissions to read and update security alerts/signals (e.g., appropriate privileges for the Security Solution feature).
+    *   Example format: `VzR1dU5COXdPUTRhQVZHRWw2bkk6LXFSZGRIVGNRVlN6TDA0bER4Z1JxUQ==` (This is just an example, use your actual key).
+*   **Username/Password (Less Secure):**
+    *   `KIBANA_USERNAME`: Your Kibana username.
+    *   `KIBANA_PASSWORD`: Your Kibana password.
+
+The server prioritizes `KIBANA_API_KEY` if it is set. If it's not set, it will attempt to use `KIBANA_USERNAME` and `KIBANA_PASSWORD`.
 
 ## Quickstart: Running the Server
 
-1.  Ensure you have set the required environment variables (`KIBANA_URL`, `KIBANA_API_KEY`).
+1.  Set the required environment variables (`KIBANA_URL` and authentication variables).
+
+    *   **Using API Key:**
+        ```bash
+        export KIBANA_URL="<your_kibana_url>"
+        export KIBANA_API_KEY="<your_base64_encoded_api_key>"
+        ```
+    *   **Using Username/Password:**
+        ```bash
+        export KIBANA_URL="<your_kibana_url>"
+        export KIBANA_USERNAME="<your_kibana_username>"
+        export KIBANA_PASSWORD="<your_kibana_password>"
+        ```
+
 2.  Navigate to the project directory (`kibana-mcp`).
 3.  Run the server using `uv` (which uses the entry point defined in `pyproject.toml`):
 
     ```bash
-    export KIBANA_URL="<your_kibana_url>"
-    export KIBANA_API_KEY="<your_api_key_id>:<your_api_key_secret>"
-uv run kibana-mcp
+    uv run kibana-mcp
     ```
 
 The server will start and listen for MCP connections via standard input/output.
@@ -54,7 +75,7 @@ Edit your `claude_desktop_config.json` file:
 *   macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 *   Windows: `%APPDATA%/Claude/claude_desktop_config.json`
 
-Add the following server configuration under the `mcpServers` key, replacing `/path/to/kibana-mcp` with the actual absolute path to this project directory on your system:
+Add the following server configuration under the `mcpServers` key, replacing `/path/to/kibana-mcp` with the actual absolute path. Choose **one** authentication method within the `env` block:
 
 ```json
 {
@@ -70,7 +91,13 @@ Add the following server configuration under the `mcpServers` key, replacing `/p
           "env": {
             // Ensure the server receives the required environment variables
             "KIBANA_URL": "<your_kibana_url>",
-            "KIBANA_API_KEY": "<your_api_key_id>:<your_api_key_secret>"
+
+            // Option 1: API Key (Recommended)
+            "KIBANA_API_KEY": "<your_base64_encoded_api_key>"
+
+            // Option 2: Username/Password (Mutually exclusive with API Key)
+            // "KIBANA_USERNAME": "<your_kibana_username>",
+            // "KIBANA_PASSWORD": "<your_kibana_password>"
           }
       }
     }
