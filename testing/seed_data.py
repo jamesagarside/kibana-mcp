@@ -551,8 +551,9 @@ def main():
     kibana_base_url = f"http://localhost:{kibana_port}"
     es_base_url = f"http://localhost:{es_port}"
     es_auth = (DEFAULT_USER, es_password)
-    # Use the custom user name for kibana_auth
-    kibana_auth = (KIBANA_SYSTEM_USER, KIBANA_SYSTEM_PASSWORD)
+    # Use the admin user ('elastic') for all script API calls
+    kibana_api_auth = es_auth # Use elastic user for API operations
+    # kibana_internal_auth = (KIBANA_SYSTEM_USER, KIBANA_SYSTEM_PASSWORD) # For Kibana's internal use
 
     # 3. Start Docker Services
     print_info("Starting Docker Compose services...")
@@ -574,26 +575,27 @@ def main():
         run_compose_command(compose_cmd, "logs", "elasticsearch") # Show ES logs on failure
         sys.exit(1)
 
-    # 5. Setup Kibana User and Role
-    print_info("Attempting to setup Kibana user and role in Elasticsearch...")
+    # 5. Setup Kibana User and Role (for Kibana internal use)
+    print_info("Attempting to setup Kibana user and role for Kibana internal use...")
     kibana_user_setup = setup_kibana_user(es_base_url, es_auth)
 
     if not kibana_user_setup:
         print_error("Failed to setup Kibana user and/or role in Elasticsearch.")
         sys.exit(1)
 
-    # 6. Wait for Kibana & Seed Data (Use kibana_auth)
-    if wait_for_kibana(kibana_base_url, kibana_auth):
+    # 6. Wait for Kibana & Seed Data (use elastic user for API calls)
+    # Wait for Kibana API to be up (it uses kibana_system_user internally, but we don't need to check that here)
+    if wait_for_kibana(kibana_base_url, kibana_api_auth): # Check API status with elastic user
         # Write the trigger document (using ES admin user)
         trigger_doc_written = write_trigger_document(es_base_url, es_auth)
         if not trigger_doc_written:
              print_warning("Failed to write trigger document, alert generation might not occur.")
 
-        # Create the rule (using Kibana system user via kibana_auth)
-        rule_name = create_sample_alert_rule(kibana_base_url, kibana_auth)
+        # Create the rule (using elastic user)
+        rule_name = create_sample_alert_rule(kibana_base_url, kibana_api_auth)
         if rule_name:
-            # Wait for alerts (using Kibana system user via kibana_auth)
-            alerts_verified = wait_for_alerts(kibana_base_url, kibana_auth, rule_name)
+            # Wait for alerts (using elastic user)
+            alerts_verified = wait_for_alerts(kibana_base_url, kibana_api_auth, rule_name)
         else:
             print_warning("Skipping alert verification as rule creation failed or rule name unavailable.")
     else:
@@ -611,13 +613,13 @@ def main():
     print(f"View logs:      {compose_logs_cmd}")
     print("\nAccess Details:")
     print(f" -> Elasticsearch: {es_base_url} (User: {DEFAULT_USER}, Pass: {es_password})")
-    print(f" -> Kibana:        {kibana_base_url} (User: {KIBANA_SYSTEM_USER}, Pass: {KIBANA_SYSTEM_PASSWORD})")
+    print(f" -> Kibana:        {kibana_base_url} (Internal User: {KIBANA_SYSTEM_USER}, API Calls Use: {DEFAULT_USER})")
     print("\nNote:") # Simplified
     es_status = 'Success' if es_ready else 'Failed'
     pw_status = 'Success' if kibana_user_setup else 'Failed'
     trig_status = 'Success' if trigger_doc_written else 'Failed'
     print(f"      Elasticsearch ready status: {es_status}")
-    print(f"      Kibana user setup status: {'Success' if kibana_user_setup else 'Failed'}")
+    print(f"      Kibana internal user setup status: {pw_status}")
     print(f"      Trigger document write status: {trig_status}")
     if alerts_verified:
         print("      Successfully verified that alerts were generated.")
