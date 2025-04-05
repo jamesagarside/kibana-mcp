@@ -151,8 +151,12 @@ async def main():
                     server_name="kibana-mcp",
                     server_version="0.1.0",
                     capabilities=server.get_capabilities(
-                        # No notifications needed for these tools
-                        notification_options=None,
+                        # Pass a NotificationOptions object, even if all are False
+                        notification_options=NotificationOptions(
+                            prompts_changed=False,
+                            resources_changed=False,
+                            tools_changed=False,
+                        ),
                         experimental_capabilities={},
                     ),
                 ),
