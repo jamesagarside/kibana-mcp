@@ -586,18 +586,21 @@ def main():
     # 6. Wait for Kibana & Seed Data (use elastic user for API calls)
     # Wait for Kibana API to be up (it uses kibana_system_user internally, but we don't need to check that here)
     if wait_for_kibana(kibana_base_url, kibana_api_auth): # Check API status with elastic user
-        # Write the trigger document (using ES admin user)
-        trigger_doc_written = write_trigger_document(es_base_url, es_auth)
-        if not trigger_doc_written:
-             print_warning("Failed to write trigger document, alert generation might not occur.")
 
-        # Create the rule (using elastic user)
+        # --- Create the rule FIRST (using elastic user) ---
         rule_name = create_sample_alert_rule(kibana_base_url, kibana_api_auth)
+
         if rule_name:
-            # Wait for alerts (using elastic user)
+            # --- Write the trigger document SECOND (using ES admin user) ---
+            trigger_doc_written = write_trigger_document(es_base_url, es_auth)
+            if not trigger_doc_written:
+                 print_warning("Failed to write trigger document, alert generation might not occur.")
+
+            # --- Wait for alerts THIRD (using elastic user) ---
             alerts_verified = wait_for_alerts(kibana_base_url, kibana_api_auth, rule_name)
         else:
-            print_warning("Skipping alert verification as rule creation failed or rule name unavailable.")
+            print_warning("Skipping trigger document write and alert verification as rule creation failed or rule name unavailable.")
+
     else:
         print_warning("Could not confirm Kibana status, skipping sample rule creation and alert verification.")
 
