@@ -361,40 +361,166 @@ def set_builtin_user_password(es_base_url, es_auth, username, password):
     return success
 
 def setup_kibana_user(es_base_url, es_auth):
-    """Creates/Updates the dedicated Kibana user with superuser and kibana_admin roles."""
-    print_info("Setting up dedicated Kibana user with 'superuser' and 'kibana_admin' roles...")
-    # Removed custom role definition
+    """Creates a dedicated user and role in Elasticsearch for Kibana."""
+    print_info("Setting up dedicated Kibana user and role in Elasticsearch...")
+    role_name = "kibana_system_role"
     user_name = KIBANA_SYSTEM_USER
     password = KIBANA_SYSTEM_PASSWORD
 
+    role_url = f"{es_base_url}/_security/role/{role_name}"
     user_url = f"{es_base_url}/_security/user/{user_name}"
 
-    # Define Kibana User, assigning superuser and kibana_admin roles
+    # Define Custom Kibana Role based on built-in 'kibana_system' role,
+    # but ensure allow_restricted_indices is true for alert indices.
+    # This definition is derived from inspecting the built-in role in 8.14.1
+    role_payload = {
+        "cluster": [
+            "monitor", "manage_index_templates", "cluster:admin/xpack/monitoring/bulk",
+            "manage_saml", "manage_token", "manage_oidc", "manage_enrich",
+            "manage_pipeline", "manage_ilm", "manage_transform",
+            "cluster:admin/xpack/security/api_key/invalidate", "grant_api_key",
+            "manage_own_api_key", "cluster:admin/xpack/security/privilege/builtin/get",
+            "delegate_pki", "cluster:admin/xpack/security/profile/get",
+            "cluster:admin/xpack/security/profile/activate",
+            "cluster:admin/xpack/security/profile/suggest",
+            "cluster:admin/xpack/security/profile/has_privileges",
+            "write_fleet_secrets", "manage_ml", "cluster:admin/analyze",
+            "monitor_text_structure", "cancel_task"
+        ],
+        "global": {
+            "application": {"manage": {"applications": ["kibana-*"]}},
+            "profile": {"write": {"applications": ["kibana*"]}}
+        },
+        "indices": [
+            # Kibana's own indices
+            {"names": [".kibana*", ".reporting-*"], "privileges": ["all"], "allow_restricted_indices": True},
+            # Monitoring (read only)
+            {"names": [".monitoring-*"], "privileges": ["read", "read_cross_cluster"], "allow_restricted_indices": False},
+            # Management Beats
+            {"names": [".management-beats"], "privileges": ["create_index", "read", "write"], "allow_restricted_indices": False},
+            # ML Indices (read)
+            {"names": [".ml-anomalies*", ".ml-stats-*"], "privileges": ["read"], "allow_restricted_indices": False},
+            # ML Annotations/Notifications (rw)
+            {"names": [".ml-annotations*", ".ml-notifications*"], "privileges": ["read", "write"], "allow_restricted_indices": False},
+            # APM config/links/sourcemaps (all, restricted)
+            {"names": [".apm-agent-configuration", ".apm-custom-link", ".apm-source-map"], "privileges": ["all"], "allow_restricted_indices": True},
+            # APM data (read)
+            {"names": ["apm-*", "logs-apm.*", "metrics-apm.*", "traces-apm.*", "traces-apm-*"], "privileges": ["read", "read_cross_cluster"], "allow_restricted_indices": False},
+            # General read/monitor
+            {"names": ["*"], "privileges": ["view_index_metadata", "monitor"], "allow_restricted_indices": False},
+            # Endpoint logs (read)
+            {"names": [".logs-endpoint.diagnostic.collection-*"], "privileges": ["read"], "allow_restricted_indices": False},
+            # Fleet (mostly all, restricted)
+            {"names": [".fleet-secrets*"], "privileges": ["write", "delete", "create_index"], "allow_restricted_indices": True},
+            {"names": [".fleet-actions*", ".fleet-agents*", ".fleet-artifacts*", ".fleet-enrollment-api-keys*", ".fleet-policies*", ".fleet-policies-leader*", ".fleet-servers*", ".fleet-fileds*", ".fleet-file-data-*", ".fleet-files-*", ".fleet-filedelivery-data-*", ".fleet-filedelivery-meta-*"], "privileges": ["all"], "allow_restricted_indices": True},
+            {"names": ["logs-elastic_agent*"], "privileges": ["read"], "allow_restricted_indices": False},
+            {"names": ["metrics-fleet_server*"], "privileges": ["all"], "allow_restricted_indices": False},
+            {"names": ["logs-fleet_server*"], "privileges": ["read", "delete_index"], "allow_restricted_indices": False},
+            # Security Solution (SIEM signals)
+            {"names": [".siem-signals*"], "privileges": ["all"], "allow_restricted_indices": False},
+            # Lists
+            {"names": [".lists-*", ".items-*"], "privileges": ["all"], "allow_restricted_indices": False},
+            # *** Alerting Indices (Allow restricted) ***
+            {"names": [".internal.alerts*", ".alerts*", ".preview.alerts*", ".internal.preview.alerts*"], "privileges": ["all"], "allow_restricted_indices": True},
+            # Endpoint Metrics/Events (read)
+            {"names": ["metrics-endpoint.policy-*", "metrics-endpoint.metrics-*", "logs-endpoint.events.*"], "privileges": ["read"], "allow_restricted_indices": False},
+            # Data stream lifecycle management for various logs/metrics/traces
+            {"names": ["logs-*", "synthetics-*", "traces-*", "/metrics-.*&~(metrics-endpoint\\.metadata_current_default.*)/", ".logs-endpoint.action.responses-*", ".logs-endpoint.diagnostic.collection-*", ".logs-endpoint.actions-*", ".logs-endpoint.heartbeat-*", ".logs-osquery_manager.actions-*", ".logs-osquery_manager.action.responses-*", "profiling-*"], "privileges": ["indices:admin/settings/update", "indices:admin/mapping/put", "indices:admin/rollover", "indices:admin/data_stream/lifecycle/put"], "allow_restricted_indices": False},
+            # Endpoint/Osquery action responses (rw)
+            {"names": [".logs-endpoint.action.responses-*", ".logs-endpoint.actions-*"], "privileges": ["auto_configure", "read", "write"], "allow_restricted_indices": False},
+            {"names": [".logs-osquery_manager.action.responses-*", ".logs-osquery_manager.actions-*"], "privileges": ["auto_configure", "create_index", "read", "index", "delete", "write"], "allow_restricted_indices": False},
+            # Other integrations (read)
+            {"names": ["logs-sentinel_one.*", "logs-crowdstrike.*"], "privileges": ["read"], "allow_restricted_indices": False},
+            # Data stream deletion privileges
+            {"names": [".logs-endpoint.diagnostic.collection-*", "logs-apm-*", "logs-apm.*-*", "metrics-apm-*", "metrics-apm.*-*", "traces-apm-*", "traces-apm.*-*", "synthetics-http-*", "synthetics-icmp-*", "synthetics-tcp-*", "synthetics-browser-*", "synthetics-browser.network-*", "synthetics-browser.screenshot-*"], "privileges": ["indices:admin/delete"], "allow_restricted_indices": False},
+            # Endpoint metadata
+            {"names": ["metrics-endpoint.metadata*"], "privileges": ["read", "view_index_metadata"], "allow_restricted_indices": False},
+            {"names": [".metrics-endpoint.metadata_current_default*", ".metrics-endpoint.metadata_united_default*"], "privileges": ["create_index", "delete_index", "read", "index", "indices:admin/aliases", "indices:admin/settings/update"], "allow_restricted_indices": False},
+             # Threat Intel indices
+            {"names": ["logs-ti_*_latest.*"], "privileges": ["create_index", "delete_index", "read", "index", "delete", "manage", "indices:admin/aliases", "indices:admin/settings/update"], "allow_restricted_indices": False},
+            {"names": ["logs-ti_*.*-*"], "privileges": ["indices:admin/delete", "read", "view_index_metadata"], "allow_restricted_indices": False},
+            # Sample data
+            {"names": ["kibana_sample_data_*"], "privileges": ["create_index", "delete_index", "read", "index", "view_index_metadata", "indices:admin/aliases", "indices:admin/settings/update"], "allow_restricted_indices": False},
+            # CSP data
+            {"names": ["logs-cloud_security_posture.findings-*", "logs-cloud_security_posture.vulnerabilities-*"], "privileges": ["read", "view_index_metadata"], "allow_restricted_indices": False},
+            {"names": ["logs-cloud_security_posture.findings_latest-default*", "logs-cloud_security_posture.scores-default*", "logs-cloud_security_posture.vulnerabilities_latest-default*"], "privileges": ["create_index", "read", "index", "delete", "indices:admin/aliases", "indices:admin/settings/update"], "allow_restricted_indices": False},
+            # Risk score
+            {"names": ["risk-score.risk-*"], "privileges": ["all"], "allow_restricted_indices": False},
+            # Asset criticality
+            {"names": [".asset-criticality.asset-criticality-*"], "privileges": ["create_index", "manage", "read"], "allow_restricted_indices": False},
+            # Cloud Defend
+            {"names": ["logs-cloud_defend.*", "metrics-cloud_defend.*"], "privileges": ["read", "view_index_metadata"], "allow_restricted_indices": False},
+            # SLO
+            {"names": [".slo-observability.*"], "privileges": ["all"], "allow_restricted_indices": False},
+            # Endpoint heartbeat (read)
+            {"names": [".logs-endpoint.heartbeat-*"], "privileges": ["read"], "allow_restricted_indices": False},
+            # Connectors
+            {"names": [".elastic-connectors*"], "privileges": ["read"], "allow_restricted_indices": False}
+        ],
+        "applications": [
+             { # Explicitly grant all privileges for the alerts feature
+                "application": "alerts",
+                "privileges": ["all"],
+                "resources": ["*"]
+             },
+             { # Keep broader Kibana access just in case
+                "application": "kibana",
+                "privileges": ["feature_discover.all", "feature_dashboard.all", "feature_visualize.all", "feature_canvas.all", "feature_maps.all", "feature_logs.all", "feature_infrastructure.all", "feature_uptime.all", "feature_apm.all", "feature_siem.all", "feature_dev_tools.all", "feature_saved_objects_management.all", "feature_advanced_settings.all", "feature_index_patterns.all", "feature_fleet.all" ], # Grant specific features instead of 'all'
+                "resources": ["*"]
+             }
+             # Add other specific applications if further 403 errors occur
+        ],
+        "run_as": [],
+        "metadata": {},
+        "transient_metadata": {"enabled": True}
+        # No remote_indices section needed for this custom role
+    }
+
+    # Define Kibana User, assigning ONLY the custom role
     user_payload = {
         "password" : password,
-        "roles" : [ "superuser", "kibana_admin" ], # Assign both roles
-        "full_name" : "Internal Kibana System User (Super+Admin) for MCP Test Env",
+        "roles" : [ role_name ], # Assign ONLY the custom role
+        "full_name" : "Internal Kibana System User (Custom Role) for MCP Test Env",
         "email" : "kibana@example.com",
         "enabled" : True
     }
 
     headers = {"Content-Type": "application/json"}
     success = True
-    # Removed role creation logic
+    role_created_or_updated = False
 
-    # Create/Update User
+    # 1. Create/Update Role
     try:
-        print_info(f"Creating/updating user: {user_name} with roles: {user_payload['roles']}")
-        # Use PUT to ensure user exists and has the correct role assignment
-        response = requests.put(user_url, auth=es_auth, headers=headers, json=user_payload, verify=False, timeout=10)
-        if not (200 <= response.status_code < 300):
-            print_warning(f"Failed to create/update user '{user_name}' (HTTP {response.status_code}): {response.text}")
-            success = False
+        print_info(f"Creating/updating role: {role_name}")
+        # Use PUT to ensure the role exists with the desired definition
+        response = requests.put(role_url, auth=es_auth, headers=headers, json=role_payload, verify=False, timeout=10)
+        if 200 <= response.status_code < 300:
+             print_info(f"Role '{role_name}' created/updated successfully.")
+             role_created_or_updated = True
         else:
-             print_info(f"User '{user_name}' created/updated successfully.")
+            print_warning(f"Failed to create/update role '{role_name}' (HTTP {response.status_code}): {response.text}")
+            success = False
     except requests.exceptions.RequestException as e:
-        print_error(f"Error creating/updating user '{user_name}': {e}")
+        print_error(f"Error creating/updating role '{role_name}': {e}")
         success = False
+
+    # 2. Create/Update User only if Role succeeded
+    if role_created_or_updated:
+        try:
+            print_info(f"Creating/updating user: {user_name} with role '{role_name}'")
+            # Use PUT to ensure user exists and has the correct role assignment
+            response = requests.put(user_url, auth=es_auth, headers=headers, json=user_payload, verify=False, timeout=10)
+            if not (200 <= response.status_code < 300):
+                print_warning(f"Failed to create/update user '{user_name}' (HTTP {response.status_code}): {response.text}")
+                success = False
+            else:
+                 print_info(f"User '{user_name}' created/updated successfully.")
+        except requests.exceptions.RequestException as e:
+            print_error(f"Error creating/updating user '{user_name}': {e}")
+            success = False
+    else:
+        print_info(f"Skipping user creation for '{user_name}' because role setup failed.")
+        success = False # Mark overall setup as failed if role failed
 
     return success
 
