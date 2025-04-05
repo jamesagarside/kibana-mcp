@@ -336,28 +336,27 @@ def wait_for_elasticsearch(es_base_url, es_auth):
     return False
 
 def set_builtin_user_password(es_base_url, es_auth, username, password):
-    """Sets the password for a built-in Elasticsearch user AND assigns kibana_admin role."""
-    print_info(f"Setting password and ensuring kibana_admin role for built-in user: {username}...")
-    # Use the Update User API to set password and roles
-    url = f"{es_base_url}/_security/user/{username}"
+    """Sets the password for a built-in Elasticsearch user."
+    # Cannot modify roles for reserved users, only password.
+    print_info(f"Setting password for built-in user: {username}...")
+    url = f"{es_base_url}/_security/user/{username}/_password"
     headers = {"Content-Type": "application/json"}
-    # Payload includes password and desired roles
-    payload = {
-        "password": password,
-        "roles": ["kibana_admin"] # Assign the kibana_admin role
-        # Other fields like full_name, email could be added if needed, but roles/password are key
-    }
+    payload = {"password": password}
     success = True
     try:
-        # Use PUT which creates or updates the user
-        response = requests.put(url, auth=es_auth, headers=headers, json=payload, verify=False, timeout=10)
+        # Use the admin user (es_auth) to set the password for the target user
+        response = requests.post(url, auth=es_auth, headers=headers, json=payload, verify=False, timeout=10)
         if not (200 <= response.status_code < 300):
-            print_warning(f"Failed to update user '{username}' (HTTP {response.status_code}): {response.text}")
-            success = False
+            # Handle case where password might already be set (e.g., 400 bad request if same pw)
+            if response.status_code == 400 and "password is unchanged" in response.text:
+                 print_info(f"Password for user '{username}' is likely already set to the desired value.")
+            else:
+                print_warning(f"Failed to set password for user '{username}' (HTTP {response.status_code}): {response.text}")
+                success = False
         else:
-            print_info(f"User '{username}' updated successfully (password set, kibana_admin role assigned).")
+            print_info(f"Password for user '{username}' set successfully.")
     except requests.exceptions.RequestException as e:
-        print_error(f"Error updating user '{username}': {e}")
+        print_error(f"Error setting password for user '{username}': {e}")
         success = False
     return success
 
@@ -446,8 +445,8 @@ def main():
     print("\nAccess Details:")
     print(f" -> Elasticsearch: {es_base_url} (User: {DEFAULT_USER}, Pass: {es_password})")
     print(f" -> Kibana:        {kibana_base_url} (Uses built-in 'kibana_system', Pass: {KIBANA_SYSTEM_PASSWORD})")
-    print("\nNote: Elasticsearch ready status: {'Success' if es_ready else 'Failed'}")
-    print(f"      Kibana built-in user update status: {'Success' if kibana_user_setup else 'Failed'}")
+    print(f"\nNote: Elasticsearch ready status: {'Success' if es_ready else 'Failed'}")
+    print(f"      Kibana built-in user password set status: {'Success' if kibana_user_setup else 'Failed'}")
     print(f"      Trigger document write status: {'Success' if trigger_doc_written else 'Failed'}")
     if alerts_verified:
         print("      Successfully verified that alerts were generated.")
