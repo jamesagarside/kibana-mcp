@@ -115,6 +115,11 @@ CUSTOM_KIBANA_ROLE_PAYLOAD = {
             "privileges": ["all"],
             "resources": ["*"]
          },
+         { # Explicitly grant all privileges for the SIEM application (needed for some rule types)
+            "application": "siem",
+            "privileges": ["all"],
+            "resources": ["*"]
+         },
          { # Keep broader Kibana access just in case
             "application": "kibana",
             "privileges": ["feature_discover.all", "feature_dashboard.all", "feature_visualize.all", "feature_canvas.all", "feature_maps.all", "feature_logs.all", "feature_infrastructure.all", "feature_uptime.all", "feature_apm.all", "feature_siem.all", "feature_dev_tools.all", "feature_saved_objects_management.all", "feature_advanced_settings.all", "feature_index_patterns.all", "feature_fleet.all" ], # Grant specific features instead of 'all'
