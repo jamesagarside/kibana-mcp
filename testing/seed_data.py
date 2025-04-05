@@ -20,6 +20,8 @@ MAX_ALERT_WAIT_SECONDS = 90  # Wait up to 1.5 minutes for alerts
 ALERT_CHECK_INTERVAL_SECONDS = 10
 KIBANA_SYSTEM_USER = "kibana_system_user"
 KIBANA_SYSTEM_PASSWORD = "kibanapass" # Hardcoded for simplicity in testing setup
+MAX_ES_WAIT_SECONDS = 90  # Wait up to 1.5 minutes for ES
+ES_CHECK_INTERVAL_SECONDS = 5
 
 # --- Helper Functions ---
 def print_info(msg):
@@ -369,6 +371,38 @@ def setup_kibana_user(es_base_url, es_auth):
 
     return success
 
+def wait_for_elasticsearch(es_base_url, es_auth):
+    """Waits for the Elasticsearch root endpoint to return 200."""
+    start_time = time.time()
+    url = f"{es_base_url}/"
+    print_info(f"Waiting for Elasticsearch API at {url}...")
+    while time.time() - start_time < MAX_ES_WAIT_SECONDS:
+        try:
+            response = requests.get(url, auth=es_auth, verify=False, timeout=5)
+            if response.status_code == 200:
+                print_info(f"Elasticsearch API is up! (Status {response.status_code})")
+                # Optional: Check cluster health endpoint as well?
+                # health_url = f"{es_base_url}/_cluster/health?wait_for_status=yellow&timeout=5s"
+                # health_response = requests.get(health_url, auth=es_auth, verify=False, timeout=7)
+                # if health_response.status_code == 200:
+                #    print_info("Elasticsearch cluster health is yellow or green.")
+                #    return True
+                # else:
+                #    print_info(f"ES cluster health status: {health_response.status_code}. Retrying...")
+                return True # Simple root check is likely enough for API readiness
+            else:
+                print_info(f"Elasticsearch API not ready yet (Status: {response.status_code}). Retrying...")
+        except requests.exceptions.ConnectionError:
+            print_info("Elasticsearch API connection refused. Retrying...")
+        except requests.exceptions.Timeout:
+            print_info("Elasticsearch API connection timed out. Retrying...")
+        except Exception as e:
+            print_warning(f"Error checking Elasticsearch status: {e}")
+        time.sleep(ES_CHECK_INTERVAL_SECONDS)
+
+    print_error(f"Elasticsearch API did not become available after {MAX_ES_WAIT_SECONDS} seconds.")
+    return False
+
 # --- Main Execution ---
 def main():
     print_info("Starting Kibana/Elasticsearch Test Environment Setup...")
@@ -408,28 +442,23 @@ def main():
     alerts_verified = False
     trigger_doc_written = False
     kibana_user_setup = False
+    es_ready = False
 
-    # 4. Wait for Elasticsearch (implicitly via Kibana wait, but could add explicit ES wait)
-    # Add an explicit wait for ES if needed, but setup_kibana_user tries to connect anyway
+    # 4. Wait for Elasticsearch
+    es_ready = wait_for_elasticsearch(es_base_url, es_auth)
 
-    # 5. Setup Kibana User in ES (Requires ES to be ready)
+    if not es_ready:
+        print_error("Elasticsearch did not become ready. Aborting setup.")
+        run_compose_command(compose_cmd, "logs", "elasticsearch") # Show ES logs on failure
+        sys.exit(1)
+
+    # 5. Setup Kibana User in ES (Now that ES is confirmed ready)
     print_info("Attempting to setup Kibana user in Elasticsearch...")
-    # Need a wait loop for ES similar to Kibana?
-    # For now, assume ES is ready shortly after compose starts or healthcheck passes.
-    # Let's add a simple wait/retry for setup_kibana_user itself.
-    setup_attempts = 0
-    max_setup_attempts = 5
-    while not kibana_user_setup and setup_attempts < max_setup_attempts:
-        setup_attempts += 1
-        print_info(f"Setup Kibana user attempt {setup_attempts}/{max_setup_attempts}...")
-        kibana_user_setup = setup_kibana_user(es_base_url, es_auth)
-        if not kibana_user_setup and setup_attempts < max_setup_attempts:
-            print_info("ES might not be ready, waiting 10s before retrying setup...")
-            time.sleep(10)
+    kibana_user_setup = setup_kibana_user(es_base_url, es_auth)
 
     if not kibana_user_setup:
-        print_error("Failed to setup Kibana user in Elasticsearch after multiple attempts.")
-        # Consider stopping services here or letting it continue partially
+        print_error("Failed to setup Kibana user in Elasticsearch.")
+        # Optionally stop here or let Kibana potentially fail later
         # sys.exit(1)
 
     # 6. Wait for Kibana & Seed Data (Now uses kibana_auth)
@@ -459,7 +488,8 @@ def main():
     print("\nAccess Details:")
     print(f" -> Elasticsearch: {es_base_url} (User: {DEFAULT_USER}, Pass: {es_password})")
     print(f" -> Kibana:        {kibana_base_url} (User: {KIBANA_SYSTEM_USER}, Pass: {KIBANA_SYSTEM_PASSWORD})")
-    print("\nNote: Kibana user setup status: {'Success' if kibana_user_setup else 'Failed'}")
+    print("\nNote: Elasticsearch ready status: {'Success' if es_ready else 'Failed'}")
+    print(f"      Kibana user setup status: {'Success' if kibana_user_setup else 'Failed'}")
     print(f"      Trigger document write status: {'Success' if trigger_doc_written else 'Failed'}")
     if alerts_verified:
         print("      Successfully verified that alerts were generated.")
