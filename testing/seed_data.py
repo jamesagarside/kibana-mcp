@@ -303,39 +303,20 @@ def write_trigger_document(es_base_url, es_auth):
     return False
 
 def setup_kibana_user(es_base_url, es_auth):
-    """Creates a dedicated user and role in Elasticsearch for Kibana."""
-    print_info("Setting up dedicated Kibana user in Elasticsearch...")
-    role_name = "kibana_system_role"
+    """Creates a dedicated superuser in Elasticsearch for Kibana (for testing only)."""
+    print_info("Setting up dedicated Kibana user (as superuser) in Elasticsearch...")
+    # role_name = "kibana_system_role" # No longer creating a specific role
     user_name = KIBANA_SYSTEM_USER
     password = KIBANA_SYSTEM_PASSWORD
 
-    role_url = f"{es_base_url}/_security/role/{role_name}"
+    # role_url = f"{es_base_url}/_security/role/{role_name}"
     user_url = f"{es_base_url}/_security/user/{user_name}"
 
-    # Define Kibana Role
-    # Ref: https://www.elastic.co/guide/en/kibana/current/using-kibana-with-security.html#kibana-user-role
-    # Permissions might need adjustment based on exact Kibana/ES features used
-    role_payload = {
-        "cluster": ["monitor", "manage_index_templates", "manage_pipeline", "manage_ilm", "read_ilm"],
-        "indices": [
-            {
-                "names": [ ".kibana*", ".tasks", ".apm-custom-link", ".reporting-*" ],
-                "privileges": ["all"],
-                "allow_restricted_indices": True
-            },
-            {
-                "names": ["ilm-history*"],
-                "privileges": ["read", "read_ilm"]
-            }
-            # Add more specific index permissions if needed
-        ]
-    }
-
-    # Define Kibana User
+    # Define Kibana User - Assign 'superuser' role directly for simplicity in testing
     user_payload = {
         "password" : password,
-        "roles" : [ role_name ],
-        "full_name" : "Internal Kibana User for MCP Test Env",
+        "roles" : [ "superuser" ], # Assign superuser role
+        "full_name" : "Internal Kibana Superuser for MCP Test Env",
         "email" : "kibana@example.com",
         "enabled" : True
     }
@@ -343,22 +324,22 @@ def setup_kibana_user(es_base_url, es_auth):
     headers = {"Content-Type": "application/json"}
     success = True
 
-    # Create/Update Role
-    try:
-        print_info(f"Creating/updating role: {role_name}")
-        response = requests.put(role_url, auth=es_auth, headers=headers, json=role_payload, verify=False, timeout=10)
-        if not (200 <= response.status_code < 300):
-            print_warning(f"Failed to create/update role '{role_name}' (HTTP {response.status_code}): {response.text}")
-            success = False
-        else:
-             print_info(f"Role '{role_name}' created/updated successfully.")
-    except requests.exceptions.RequestException as e:
-        print_error(f"Error creating/updating role '{role_name}': {e}")
-        success = False
+    # Remove Role Creation/Update Section
+    # try:
+    #     print_info(f"Creating/updating role: {role_name}")
+    #     response = requests.put(role_url, auth=es_auth, headers=headers, json=role_payload, verify=False, timeout=10)
+    #     if not (200 <= response.status_code < 300):
+    #         print_warning(f"Failed to create/update role '{role_name}' (HTTP {response.status_code}): {response.text}")
+    #         success = False
+    #     else:
+    #          print_info(f"Role '{role_name}' created/updated successfully.")
+    # except requests.exceptions.RequestException as e:
+    #     print_error(f"Error creating/updating role '{role_name}': {e}")
+    #     success = False
 
     # Create/Update User
     try:
-        print_info(f"Creating/updating user: {user_name}")
+        print_info(f"Creating/updating user: {user_name} with superuser role") # Updated log
         response = requests.put(user_url, auth=es_auth, headers=headers, json=user_payload, verify=False, timeout=10)
         if not (200 <= response.status_code < 300):
             print_warning(f"Failed to create/update user '{user_name}' (HTTP {response.status_code}): {response.text}")
