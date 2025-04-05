@@ -479,8 +479,8 @@ def setup_kibana_user(es_base_url, es_auth):
     # Define Kibana User, assigning ONLY the custom role
     user_payload = {
         "password" : password,
-        "roles" : [ role_name ], # Assign ONLY the custom role
-        "full_name" : "Internal Kibana System User (Custom Role) for MCP Test Env",
+        "roles" : [ role_name, "kibana_admin" ], # Assign custom role AND kibana_admin
+        "full_name" : "Internal Kibana System User (Custom+Admin) for MCP Test Env",
         "email" : "kibana@example.com",
         "enabled" : True
     }
@@ -507,7 +507,7 @@ def setup_kibana_user(es_base_url, es_auth):
     # 2. Create/Update User only if Role succeeded
     if role_created_or_updated:
         try:
-            print_info(f"Creating/updating user: {user_name} with role '{role_name}'")
+            print_info(f"Creating/updating user: {user_name} with roles: {user_payload['roles']}")
             # Use PUT to ensure user exists and has the correct role assignment
             response = requests.put(user_url, auth=es_auth, headers=headers, json=user_payload, verify=False, timeout=10)
             if not (200 <= response.status_code < 300):
