@@ -112,3 +112,67 @@ npx @modelcontextprotocol/inspector uv --directory /path/to/kibana-mcp run kiban
 ```
 
 Upon launching, the Inspector will display a URL that you can access in your browser to begin debugging.
+
+## Local Development & Testing
+
+To test this server locally, you can use the provided Docker Compose configuration to spin up local Elasticsearch and Kibana instances.
+
+**Prerequisites:**
+
+*   [Docker](https://docs.docker.com/get-docker/)
+*   [Docker Compose](https://docs.docker.com/compose/install/)
+
+**Steps:**
+
+1.  **Set Passwords:**
+    *   Open the `docker-compose.yml` file.
+    *   **Crucially, change the default password `changeme`** for both the `elasticsearch` and `kibana` services. Use a secure password and ensure it's the same for both.
+    *   *(Optional but recommended)*: If you want Elasticsearch data to persist across container restarts, uncomment the `volumes` section at the bottom of `docker-compose.yml` and the `volumes` line under the `elasticsearch` service definition.
+
+2.  **Start Services:**
+    *   Open your terminal in the root directory of this repository.
+    *   Run the command:
+        ```bash
+        docker-compose up -d
+        ```
+    *   This command will download the necessary Docker images (if not already present) and start the Elasticsearch and Kibana containers in the background. Healthchecks are included to ensure Kibana waits for Elasticsearch to be ready.
+
+3.  **Access Services:**
+    *   **Elasticsearch:** Available at `http://localhost:9200`
+    *   **Kibana:** Available at `http://localhost:5601`
+    *   Login to Kibana using the username `elastic` and the password you set in `docker-compose.yml`.
+
+4.  **Configure MCP Server:**
+    *   When running the Kibana MCP server (e.g., `main.py`), configure it to connect to the local Kibana instance:
+        *   Set the Kibana base URL to `http://localhost:5601`.
+        *   Use the username `elastic` and the password you set.
+
+5.  **Testing:**
+    *   You can now send requests to your MCP server, which will interact with the local Kibana instance.
+    *   You might need to manually create some sample alerts or data within Kibana via its UI (`http://localhost:5601`) to test the `get_alerts`, `tag_alert`, and `adjust_alert_severity` tools effectively.
+
+6.  **Stop Services:**
+    *   When you're finished testing, stop the containers:
+        ```bash
+        docker-compose down
+        ```
+    *   If you configured persistent volumes and want to remove the Elasticsearch data volume, add the `-v` flag:
+        ```bash
+        docker-compose down -v
+        ```
+
+## Running the Server
+
+(Add instructions here on how to install dependencies and run the main server script, e.g., `main.py`)
+
+```bash
+# Example:
+pip install -r requirements.txt
+python src/kibana_mcp/main.py --kibana-url <your_kibana_url> --username <user> --password <pass>
+```
+
+## Available Tools
+
+*   `tag_alert`: Adds tags to a Kibana security alert.
+*   `adjust_alert_severity`: Changes the severity of a Kibana security alert.
+*   `get_alerts`: Fetches recent Kibana security alerts.

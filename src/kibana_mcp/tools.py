@@ -1,6 +1,7 @@
 import httpx
-from typing import List
+from typing import List, Optional
 import mcp.types as types
+import json # Added json import
 
 # Note: We pass the http_client instance to the _call functions now
 
@@ -45,6 +46,26 @@ async def handle_list_tools() -> list[types.Tool]:
                     },
                 },
                 "required": ["alert_id", "new_severity"],
+            },
+        ),
+        types.Tool( # Added new tool definition
+            name="get_alerts",
+            description="Fetches recent Kibana security alerts, optionally filtered by text and limited in quantity.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum number of alerts to return (default: 20).",
+                        "default": 20
+                    },
+                    "search_text": {
+                        "type": "string",
+                        "description": "Text to search for in alert fields (optional)."
+                    },
+                    # Add other potential filters like status, severity, time range later if needed
+                },
+                "required": [], # No required parameters for basic fetch
             },
         )
     ]
@@ -104,5 +125,48 @@ async def _call_adjust_alert_severity(http_client: httpx.AsyncClient, alert_id: 
         result_text += f"\nKibana API returned error: {exc.response.status_code} - {exc.response.text}"
     except Exception as e:
          result_text += f"\nUnexpected error during severity update: {str(e)}"
+
+    return result_text
+
+# Added new function implementation
+async def _call_get_alerts(http_client: httpx.AsyncClient, limit: int = 20, search_text: Optional[str] = None) -> str:
+    """Handles the API interaction for fetching alerts."""
+    api_path = "/api/alerting/alerts/_find"
+    # Default sorting by start time, newest first
+    payload = {
+        "page": 1,
+        "per_page": limit,
+        "sort_field": "start",
+        "sort_order": "desc",
+        "search_fields": ["alert.name", "kibana.alert.rule.name"], # Fields to search within if search_text is provided
+        "default_search_operator": "AND"
+    }
+    if search_text:
+        payload["search"] = search_text
+
+    result_text = f"Attempting to fetch up to {limit} alerts"
+    if search_text:
+        result_text += f" matching '{search_text}'"
+    result_text += "..."
+
+    try:
+        response = await http_client.post(api_path, json=payload)
+        response.raise_for_status()
+        alerts_data = response.json()
+        # Return a JSON string representation of the fetched alerts
+        result_text = json.dumps(alerts_data, indent=2)
+
+    except httpx.RequestError as exc:
+        result_text += f"
+Error calling Kibana API: {exc}"
+    except httpx.HTTPStatusError as exc:
+        result_text += f"
+Kibana API returned error: {exc.response.status_code} - {exc.response.text}"
+    except json.JSONDecodeError:
+         result_text += f"
+Error parsing JSON response from Kibana API."
+    except Exception as e:
+         result_text += f"
+Unexpected error during alert fetch: {str(e)}"
 
     return result_text 
