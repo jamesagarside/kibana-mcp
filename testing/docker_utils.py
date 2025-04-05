@@ -2,7 +2,7 @@ import subprocess
 import yaml
 import sys
 
-# Assuming utils.py is in the same directory
+# Use relative imports
 from .utils import print_info, print_error, print_warning, command_exists
 
 # ==============================================================================

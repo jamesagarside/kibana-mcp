@@ -2,7 +2,7 @@ import time
 import requests
 import sys
 
-# Assuming utils.py and config.py are in the same directory
+# Use relative imports
 from .utils import print_info, print_error, print_warning
 from .config import (
     MAX_ES_WAIT_SECONDS, ES_CHECK_INTERVAL_SECONDS,

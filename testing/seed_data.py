@@ -8,18 +8,18 @@ import yaml  # Requires PyYAML
 from pathlib import Path
 import datetime
 
-# Import constants and functions from new modules
-from testing.config import (
+# Use relative imports now that testing is a package
+from .config import (
     COMPOSE_FILE, DEFAULT_USER, KIBANA_SYSTEM_USER # Add other needed constants
 )
-from testing.utils import print_info, print_error, command_exists
-from testing.docker_utils import (
+from .utils import print_info, print_error, command_exists
+from .docker_utils import (
     get_docker_compose_cmd, run_compose_command, parse_compose_config
 )
-from testing.es_kb_setup import (
+from .es_kb_setup import (
     wait_for_elasticsearch, wait_for_kibana, setup_kibana_user
 )
-from testing.detection import (
+from .detection import (
     create_sample_detection_rule, write_trigger_document, wait_for_signals
 )
 

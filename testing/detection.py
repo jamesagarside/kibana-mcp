@@ -3,7 +3,7 @@ import json
 import requests
 import datetime
 
-# Assuming utils.py and config.py are in the same directory
+# Use relative imports
 from .utils import print_info, print_error, print_warning
 from .config import (
     SAMPLE_RULE_FILE, TRIGGER_DOC_FILE, MAX_ALERT_WAIT_SECONDS, ALERT_CHECK_INTERVAL_SECONDS
