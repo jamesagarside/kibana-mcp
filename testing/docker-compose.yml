@@ -33,9 +33,10 @@ services:
       - ELASTICSEARCH_PASSWORD=kibanapass # Must match KIBANA_SYSTEM_PASSWORD in seed_data.py
       - SERVER_SSL_ENABLED=false
       # Set encryption keys via ENV VARS (uppercase, underscores)
-      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=a_fixed_test_encryption_key_32_bytes
-      - XPACK_REPORTING_ENCRYPTIONKEY=another_fixed_test_key_32_bytes
-      - XPACK_SECURITY_ENCRYPTIONKEY=yet_another_fixed_test_key_32b
+      # Keys must be at least 32 characters long.
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=a_fixed_test_encryption_key_32_bytes_long
+      - XPACK_REPORTING_ENCRYPTIONKEY=another_fixed_test_key_32_bytes_long_too
+      - XPACK_SECURITY_ENCRYPTIONKEY=yet_another_fixed_test_key_32b_plus_more
     ports:
       - "5601:5601"
     networks:
