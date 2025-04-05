@@ -115,68 +115,89 @@ Upon launching, the Inspector will display a URL that you can access in your bro
 
 ## Local Development & Testing
 
-To test this server locally, you can use the provided Docker Compose configuration to spin up local Elasticsearch and Kibana instances.
+To test this server locally, you can use the provided Docker Compose configuration located in the `testing/` directory to spin up local Elasticsearch and Kibana instances.
 
 **Prerequisites:**
 
 *   [Docker](https://docs.docker.com/get-docker/)
 *   [Docker Compose](https://docs.docker.com/compose/install/)
 
-**Steps:**
+**Quickstart:**
+
+1.  Navigate to the `testing/` directory:
+    ```bash
+    cd testing
+    ```
+2.  Make the quickstart script executable (if you haven't already):
+    ```bash
+    chmod +x quickstart-test-env.sh
+    ```
+3.  Run the quickstart script:
+    ```bash
+    ./quickstart-test-env.sh
+    ```
+4.  The script will start the containers and print the access URLs and credentials.
+5.  Remember to navigate back to the root directory (`cd ..`) before running the MCP server.
+
+**Manual Setup Steps (if not using the script):**
 
 1.  **Check Passwords:**
-    *   Open the `docker-compose.yml` file.
-    *   The default password for the `elastic` user is set to `elastic` for both the `elasticsearch` and `kibana` services. You can change this if needed, but ensure it's the same in both places and update the healthcheck command if you do.
+    *   Open the `testing/docker-compose.yml` file.
+    *   The default password for the `elastic` user is set to `elastic`. You can change this if needed (ensure it's the same for both services and update the healthcheck).
     *   **Warning:** Do not use the default password in a production environment.
-    *   *(Optional but recommended)*: If you want Elasticsearch data to persist across container restarts, uncomment the `volumes` section at the bottom of `docker-compose.yml` and the `volumes` line under the `elasticsearch` service definition.
+    *   *(Optional)*: Handle persistent volumes as needed within `testing/docker-compose.yml`.
 
 2.  **Start Services:**
-    *   Open your terminal in the root directory of this repository.
+    *   Navigate to the `testing/` directory.
     *   Run the command:
         ```bash
-        docker-compose up -d
+        # Use 'docker compose' if you have v2
+        docker compose -f docker-compose.yml up -d
+        # Or 'docker-compose' if you have v1
+        # docker-compose -f docker-compose.yml up -d
         ```
-    *   This command will download the necessary Docker images (if not already present) and start the Elasticsearch and Kibana containers in the background. Healthchecks are included to ensure Kibana waits for Elasticsearch to be ready.
 
 3.  **Access Services:**
-    *   **Elasticsearch:** Available at `http://localhost:9200`
-    *   **Kibana:** Available at `http://localhost:5601`
-    *   Login to Kibana using the username `elastic` and the password set in `docker-compose.yml` (default is `elastic`).
+    *   **Elasticsearch:** `http://localhost:9200` (or the port defined in `testing/docker-compose.yml`)
+    *   **Kibana:** `http://localhost:5601` (or the port defined in `testing/docker-compose.yml`)
+    *   Login using username `elastic` and the password from `testing/docker-compose.yml`.
 
 4.  **Configure MCP Server:**
-    *   When running the Kibana MCP server, configure it to connect to the Kibana instance by setting the following environment variables **before** running the server script:
-        *   `KIBANA_URL`: The base URL of your Kibana instance (e.g., `http://localhost:5601` for the local Docker setup).
-        *   Choose **one** authentication method:
-            *   **API Key (Recommended):**
-                *   `KIBANA_API_KEY`: A Kibana API Key (the Base64 encoded `id:key` string). You can create these in Kibana under Management -> Security -> API Keys.
-            *   **Username/Password:**
-                *   `KIBANA_USERNAME`: Your Kibana username (e.g., `elastic` for the local Docker setup).
-                *   `KIBANA_PASSWORD`: Your Kibana password (e.g., `elastic` for the local Docker setup).
-        *   *Note:* If both `KIBANA_API_KEY` and `KIBANA_USERNAME`/`KIBANA_PASSWORD` are set, the API Key will be used.
+    *   Set the environment variables **before** running the server script (from the **root** directory):
+        *   `KIBANA_URL=http://localhost:5601`
+        *   Set `KIBANA_API_KEY` **or** (`KIBANA_USERNAME` and `KIBANA_PASSWORD`). For the local setup, use:
+            *   `KIBANA_USERNAME=elastic`
+            *   `KIBANA_PASSWORD=elastic`
 
 5.  **Run the Server:**
-    *   (Add instructions here on how to install dependencies and run the main server script, e.g., using `python -m src.kibana_mcp.server` or similar)
-    *   Example using environment variables:
+    *   From the **root** directory:
         ```bash
         export KIBANA_URL=http://localhost:5601
-        # Using API Key
-        export KIBANA_API_KEY="YOUR_BASE64_ENCODED_API_KEY"
-        # OR Using Username/Password
-        # export KIBANA_USERNAME=elastic
-        # export KIBANA_PASSWORD=elastic
+        export KIBANA_USERNAME=elastic
+        export KIBANA_PASSWORD=elastic
+        # Or export KIBANA_API_KEY=...
 
         # Assuming your package/module is runnable
         python -m src.kibana_mcp.server
         ```
 
 6.  **Testing:**
-    *   You can now send requests to your MCP server (which listens on stdin/stdout), which will interact with the configured Kibana instance.
+    *   Send requests to your MCP server (stdin/stdout).
+
+7.  **Stop Services:**
+    *   Navigate to the `testing/` directory.
+    *   Run:
+        ```bash
+        docker compose -f docker-compose.yml down
+        # Or
+        # docker-compose -f docker-compose.yml down
+        ```
 
 ## Running the Server
 
-Set the required environment variables (`KIBANA_URL` and either `KIBANA_API_KEY` or `KIBANA_USERNAME`/`KIBANA_PASSWORD`) as described in the "Local Development & Testing" section.
+Set the required environment variables (`KIBANA_URL` and authentication variables) as described above.
 
-Then, run the server module:
+Then, from the **root** directory, run the server module:
 
 ```bash
 # Example:

@@ -4,7 +4,10 @@
 
 set -e # Exit immediately if a command exits with a non-zero status.
 
-COMPOSE_FILE="docker-compose.yml"
+# Determine the directory where the script resides
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
 DEFAULT_USER="elastic"
 
 # --- Helper Functions ---
@@ -16,7 +19,7 @@ command_exists() {
 echo "[INFO] Checking prerequisites..."
 
 if [ ! -f "$COMPOSE_FILE" ]; then
-    echo "[ERROR] $COMPOSE_FILE not found in the current directory." >&2
+    echo "[ERROR] Compose file not found at $COMPOSE_FILE" >&2
     exit 1
 fi
 
@@ -47,12 +50,12 @@ KIBANA_PORT=$(grep -A 8 'kibana:' "$COMPOSE_FILE" | grep 'ports:' -A 1 | grep -E
 ES_PASSWORD=$(grep -A 5 'elasticsearch:' "$COMPOSE_FILE" | grep 'ELASTIC_PASSWORD=' | sed 's/.*ELASTIC_PASSWORD=//' | sed 's/#.*//' | tr -d ' ' | tr -d '"' || echo "elastic") # Default fallback
 
 # --- Start Services ---
-echo "[INFO] Starting Elasticsearch and Kibana using Docker Compose..."
-$DOCKER_COMPOSE_CMD up -d
+echo "[INFO] Starting Elasticsearch and Kibana using $COMPOSE_FILE ..."
+$DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" up -d
 
 if [ $? -ne 0 ]; then
     echo "[ERROR] Docker Compose failed to start the services." >&2
-    echo "Check the output above for details. You might need to run '$DOCKER_COMPOSE_CMD up' without '-d' to see logs." >&2
+    echo "Check the output above for details. You might need to run '$DOCKER_COMPOSE_CMD -f \"$COMPOSE_FILE\" up' without '-d' to see logs." >&2
     exit 1
 fi
 
@@ -64,8 +67,8 @@ echo "-----------------------------------------------------"
 echo ""
 echo "Services are starting in the background."
 echo "It might take a minute or two for them to be fully ready (due to healthchecks)."
-echo "You can check the status with: $DOCKER_COMPOSE_CMD ps"
-echo "You can view logs with:       $DOCKER_COMPOSE_CMD logs -f"
+echo "You can check the status with: $DOCKER_COMPOSE_CMD -f \"$COMPOSE_FILE\" ps"
+echo "You can view logs with:       $DOCKER_COMPOSE_CMD -f \"$COMPOSE_FILE\" logs -f"
 echo ""
 echo "Access Details:"
 echo " -> Elasticsearch: http://localhost:$ES_PORT"
@@ -75,7 +78,7 @@ echo "Credentials:"
 echo " -> Username: $DEFAULT_USER"
 echo " -> Password: $ES_PASSWORD (from $COMPOSE_FILE)"
 echo ""
-echo "To stop the services, run: $DOCKER_COMPOSE_CMD down"
+echo "To stop the services, run: $DOCKER_COMPOSE_CMD -f \"$COMPOSE_FILE\" down"
 echo "-----------------------------------------------------"
 
 exit 0 
