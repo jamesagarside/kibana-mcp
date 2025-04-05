@@ -248,7 +248,8 @@ def write_trigger_document(es_base_url, es_auth):
         return False
 
     url = f"{es_base_url}/_bulk"
-    index_name = ".kibana_task_manager_trigger_docs" # Matches the rule's index pattern
+    # Use a non-restricted index name to avoid auto_create permission issues
+    index_name = "mcp-trigger-docs"
     print_info(f"Writing trigger document from {TRIGGER_DOC_FILE.name} to Elasticsearch index '{index_name}'...")
 
     try:

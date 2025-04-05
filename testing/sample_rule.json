@@ -4,7 +4,7 @@
   "rule_type_id": ".index-threshold",
   "consumer": "alerts",
   "params": {
-    "index": [".kibana_task_manager*"],
+    "index": ["mcp-trigger-docs"],
     "timeField": "@timestamp",
     "aggType": "count",
     "groupBy": "top",
@@ -16,5 +16,5 @@
   },
   "schedule": { "interval": "1m" },
   "actions": [],
-  "notify_when": "onActive"
+  "notify_when": "onActiveAlert"
 } 
