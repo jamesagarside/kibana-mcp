@@ -84,38 +84,61 @@ async def _call_adjust_alert_status(http_client: httpx.AsyncClient, alert_id: st
     return result_text
 
 # Added new function implementation
-async def _call_get_alerts(http_client: httpx.AsyncClient, limit: int = 20, search_text: Optional[str] = None) -> str:
-    """Handles the API interaction for fetching alerts."""
+async def _call_get_alerts(http_client: httpx.AsyncClient, limit: int, search_text: str) -> str:
+    """Handles the API interaction for fetching alerts using Elasticsearch query DSL."""
     # Correct API endpoint for searching alert signals
     api_path = "/api/detection_engine/signals/search"
-    
-    # The payload structure might need adjustment for this endpoint.
-    # Start with a basic query, check Kibana dev tools/docs for exact format.
-    # Using a simple match_all query for now if no search_text provided.
-    query: Dict = {"match_all": {}}
-    if search_text:
-        query = {
+
+    # Construct the base Elasticsearch bool query
+    bool_query: Dict = {
+        "bool": {
+            "must": [],
+            "filter": [],
+            "should": [],
+            "must_not": []
+        }
+    }
+
+    # If search_text is provided AND is not the default '*', add it as a multi_match filter
+    if search_text != "*":
+        # Place the multi_match query inside the 'filter' context for non-scoring search
+        bool_query["bool"]["filter"].append({
             "multi_match": {
                 "query": search_text,
-                "fields": ["kibana.alert.rule.name", "signal.rule.name", "message", "host.name", "user.name"] # Example fields, adjust as needed
+                "fields": [
+                    "kibana.alert.rule.name",
+                    "kibana.alert.reason", # Added reason field
+                    "signal.rule.name",    # Kept signal.rule.name just in case
+                    "message",             # Kept message
+                    "host.name",           # Kept host.name
+                    "user.name",           # Kept user.name
+                    "kibana.alert.rule.description", # Added description
+                    "kibana.alert.uuid",   # Allow searching by alert UUID
+                    "_id"                  # Allow searching by internal _id
+                    # Add more fields as needed
+                ]
             }
-        }
+        })
+    # If no search text, the bool query with empty clauses acts like match_all
 
     payload = {
-        "query": query,
-        "size": limit, # Elasticsearch uses 'size', not 'per_page'
+        "query": bool_query, # Use the constructed bool query
+        "size": limit,
         "sort": [
-            {"@timestamp": {"order": "desc"}} # Sorting format for Elasticsearch
+            {"@timestamp": {"order": "desc"}}
         ]
-        # Removed fields unsupported by this endpoint like page, per_page, sort_field, search_fields, default_search_operator
+        # Add other potential payload fields like aggregations, _source filtering etc. if needed
     }
 
     result_text = f"Attempting to fetch up to {limit} alerts (signals)"
-    if search_text:
-        result_text += f" matching '{search_text}'"
+    if search_text != "*":
+        result_text += f" matching '{search_text}' using bool query"
+    else:
+        result_text += f" (matching all, as search_text is default '*')"
     result_text += "..."
 
     try:
+        # Consider adding headers={"Elastic-Api-Version": "2023-10-31"} if needed
         response = await http_client.post(api_path, json=payload)
         response.raise_for_status()
         alerts_data = response.json()

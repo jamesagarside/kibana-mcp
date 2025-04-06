@@ -116,11 +116,11 @@ async def adjust_alert_status(alert_id: str, new_status: str) -> list[types.Text
     )
 
 @mcp.tool()
-async def get_alerts(limit: Optional[int] = 20, 
-                     search_text: Optional[str] = None
+async def get_alerts(limit: int = 20, 
+                     search_text: str = "*"
                      ) -> list[types.TextContent]:
     """Fetches recent Kibana security alert signals, optionally filtering by text and limiting quantity."""
-    # Delegate execution to the safe wrapper
+    # Delegate execution to the safe wrapper, extracting values from the args model
     return await execute_tool_safely(
         tool_name='get_alerts',
         tool_impl_func=_call_get_alerts,
