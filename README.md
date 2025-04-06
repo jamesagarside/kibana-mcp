@@ -1,6 +1,6 @@
 # Kibana MCP Server
 
-![Kibana MCP Demo](kibana-mcp-screengrab.gif)
+![Kibana MCP Demo](faster-server-demo.gif)
 
 This project provides a Model Context Protocol (MCP) server implementation that allows AI assistants to interact with Kibana Security alerts.
 
