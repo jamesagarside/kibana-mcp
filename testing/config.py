@@ -6,7 +6,8 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent.resolve() # Use Path(__file__) for relative paths within module
 COMPOSE_FILE = SCRIPT_DIR / "docker-compose.yml"
 SAMPLE_RULE_FILE = SCRIPT_DIR / "sample_rule.json"
-TRIGGER_DOC_FILE = SCRIPT_DIR / "trigger_document.json"
+NDJSON_FILE = SCRIPT_DIR / "auth_events.ndjson"
+# TRIGGER_DOC_FILE = SCRIPT_DIR / "trigger_document.json"
 DEFAULT_USER = "elastic"
 MAX_KIBANA_WAIT_SECONDS = 180  # 3 minutes
 KIBANA_CHECK_INTERVAL_SECONDS = 5
