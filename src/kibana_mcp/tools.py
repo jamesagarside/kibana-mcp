@@ -1,74 +1,13 @@
 import httpx
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Callable, Awaitable
 import mcp.types as types
 import json # Added json import
+import logging # Add logging import
+
+# Setup logger for this module if not already present
+tool_logger = logging.getLogger("kibana-mcp.tools")
 
 # Note: We pass the http_client instance to the _call functions now
-
-async def handle_list_tools() -> list[types.Tool]:
-    """
-    List available Kibana Security tools.
-    """
-    return [
-        types.Tool(
-            name="tag_alert",
-            description="Adds one or more tags to a specific Kibana security alert.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "alert_id": {
-                        "type": "string",
-                        "description": "The ID of the Kibana alert to tag."
-                    },
-                    "tags": {
-                        "type": "array",
-                        "description": "A list of tags to add to the alert.",
-                        "items": {"type": "string"}
-                    },
-                },
-                "required": ["alert_id", "tags"],
-            },
-        ),
-        types.Tool(
-            name="adjust_alert_severity",
-            description="Changes the severity of a specific Kibana security alert.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "alert_id": {
-                        "type": "string",
-                        "description": "The ID of the Kibana alert."
-                    },
-                    "new_severity": {
-                        "type": "string",
-                        "description": "The new severity level.",
-                        "enum": ["informational", "low", "medium", "high", "critical"]
-                    },
-                },
-                "required": ["alert_id", "new_severity"],
-            },
-        ),
-        types.Tool( # Added new tool definition
-            name="get_alerts",
-            description="Fetches recent Kibana security alerts, optionally filtered by text and limited in quantity.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "limit": {
-                        "type": "integer",
-                        "description": "Maximum number of alerts to return (default: 20).",
-                        "default": 20
-                    },
-                    "search_text": {
-                        "type": "string",
-                        "description": "Text to search for in alert fields (optional)."
-                    },
-                    # Add other potential filters like status, severity, time range later if needed
-                },
-                "required": [], # No required parameters for basic fetch
-            },
-        )
-    ]
 
 async def _call_tag_alert(http_client: httpx.AsyncClient, alert_id: str, tags_to_add: List[str]) -> str:
     """Handles the API interaction for tagging an alert signal."""
@@ -189,3 +128,30 @@ async def _call_get_alerts(http_client: httpx.AsyncClient, limit: int = 20, sear
          result_text += f"\nUnexpected error during alert signal fetch: {str(e)}"
 
     return result_text 
+
+# Helper function to execute tools safely
+async def execute_tool_safely(
+    tool_name: str,
+    tool_impl_func: Callable[..., Awaitable[str]], # Type hint for the _call_... funcs
+    http_client: httpx.AsyncClient,
+    **kwargs
+) -> list[types.TextContent]:
+    """Wraps tool execution with client check, logging, and error handling."""
+    if not http_client:
+        tool_logger.error(f"HTTP client not initialized when attempting to call tool '{tool_name}'.")
+        raise RuntimeError("HTTP client not initialized.")
+    
+    tool_logger.info(f"Executing tool '{tool_name}' with args: {kwargs}")
+    try:
+        # Pass the client and other args to the specific implementation
+        result_text = await tool_impl_func(http_client=http_client, **kwargs)
+        tool_logger.info(f"Tool '{tool_name}' executed successfully.")
+        return [types.TextContent(type="text", text=str(result_text))]
+    except TypeError as e:
+        # Catch argument mismatches specifically
+        tool_logger.error(f"Invalid arguments passed to tool '{tool_name}' implementation: {e}", exc_info=True)
+        # Raise a more specific error if possible, or a generic one
+        raise ValueError(f"Invalid arguments provided for tool '{tool_name}': {e}")
+    except Exception as e:
+        tool_logger.error(f"Error executing tool '{tool_name}': {e}", exc_info=True)
+        raise RuntimeError(f"An error occurred while executing tool '{tool_name}'.") 
