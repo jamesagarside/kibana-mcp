@@ -8,19 +8,15 @@ This server exposes the following tools to MCP clients:
 
 ### Tools
 
-*   **`tag_alert`**: Adds one or more tags to a specific Kibana security alert.
-    *   `alert_id` (string, required): The ID of the Kibana alert to tag.
-    *   `tags` (array of strings, required): A list of tags to add to the alert. Existing tags are preserved, and duplicates are handled.
-*   **`adjust_alert_severity`**: Changes the severity of a specific Kibana security alert.
-    *   `alert_id` (string, required): The ID of the Kibana alert.
-    *   `new_severity` (string, required): The new severity level. Must be one of: "informational", "low", "medium", "high", "critical".
-*   **`get_alerts`**: Fetches recent Kibana security alerts, optionally filtering them.
-    *   `status` (string, optional): Filter by alert status (e.g., "open", "acknowledged", "closed").
-    *   `severity` (array of strings, optional): Filter by one or more severity levels (e.g., ["high", "critical"]).
-    *   `time_range_field` (string, optional, defaults to "@timestamp"): Field to use for time range filtering.
-    *   `time_range_start` (string, optional): Start of the time range (e.g., "now-1d", "2024-01-01T00:00:00Z").
-    *   `time_range_end` (string, optional): End of the time range (e.g., "now").
-    *   `max_alerts` (integer, optional, defaults to 50): Maximum number of alerts to return.
+*   **`tag_alert`**: Adds one or more tags to a specific Kibana security alert signal.
+    *   `alert_id` (string, required): The ID of the Kibana alert signal to tag.
+    *   `tags` (array of strings, required): A list of tags to add to the alert signal.
+*   **`adjust_alert_status`**: Changes the status of a specific Kibana security alert signal.
+    *   `alert_id` (string, required): The ID of the Kibana alert signal.
+    *   `new_status` (string, required): The new status. Must be one of: "open", "acknowledged", "closed".
+*   **`get_alerts`**: Fetches recent Kibana security alert signals, optionally filtering by text and limiting quantity.
+    *   `limit` (integer, optional, default: 20): Maximum number of alerts to return.
+    *   `search_text` (string, optional): Text to search for in alert signal fields.
 
 ## Configuration
 
@@ -64,48 +60,77 @@ The server prioritizes `KIBANA_API_KEY` if it is set. If it's not set, it will a
 
 The server will start and listen for MCP connections via standard input/output.
 
-## Connecting an MCP Client (e.g., Claude Desktop)
+## Connecting an MCP Client (e.g., Cursor, Claude Desktop)
 
-You can configure MCP clients like Claude Desktop to use this server.
+You can configure MCP clients like Cursor or Claude Desktop to use this server.
 
-**Claude Desktop Configuration:**
+**Configuration File Locations:**
 
-Edit your `claude_desktop_config.json` file:
+*   Cursor: `~/.cursor/mcp.json`
+*   Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%/Claude/claude_desktop_config.json` (Windows)
 
-*   macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-*   Windows: `%APPDATA%/Claude/claude_desktop_config.json`
+Add the following server configuration under the `mcpServers` key, replacing `/path/to/kibana-mcp` with the actual absolute path to your project root. Choose **one** authentication method (`KIBANA_API_KEY` or `KIBANA_USERNAME`/`KIBANA_PASSWORD`) within the command arguments.
 
-Add the following server configuration under the `mcpServers` key, replacing `/path/to/kibana-mcp` with the actual absolute path. Choose **one** authentication method within the `env` block:
+**Recommended Configuration (using `/usr/bin/env`):**
+
+Some client applications may not reliably pass environment variables defined in their configuration's `env` block. Using `/usr/bin/env` directly ensures the variables are set for the server process.
 
 ```json
 {
   "mcpServers": {
-    "kibana-security": { // You can choose any name for the client to display
-      "command": "uv",
+    "kibana-mcp": { // You can choose any name for the client to display
+      "command": "/usr/bin/env", // Use env command for reliability
       "args": [
-        "run",
-        "kibana-mcp"
+        // Set required environment variables here
+        "KIBANA_URL=<your_kibana_url>",
+
+        // Option 1: API Key (Recommended)
+        "KIBANA_API_KEY=<your_base64_encoded_api_key>",
+
+        // Option 2: Username/Password (Mutually exclusive with API Key)
+        // "KIBANA_USERNAME=<your_kibana_username>",
+        // "KIBANA_PASSWORD=<your_kibana_password>",
+
+        // Command to run the server (using absolute paths)
+        "/path/to/your/virtualenv/bin/python", // e.g., /Users/me/kibana-mcp/.venv/bin/python
+        "/path/to/kibana-mcp/src/kibana_mcp/server.py" // Absolute path to server script
+      ],
+      "options": {
+          "cwd": "/path/to/kibana-mcp" // Set correct working directory
+          // No "env" block needed here when using /usr/bin/env in command/args
+      }
+    }
+    // Add other servers here if needed
+  }
+}
+```
+
+*(Note: Replace placeholders like `<your_kibana_url>`, `<your_base64_encoded_api_key>`, and the python/script paths with your actual values. Storing secrets directly in the config file is generally discouraged for production use. Consider more secure ways to manage environment variables if needed.)*
+
+**Alternative Configuration (Standard `env` block - might not work reliably):**
+
+*(This is the standard documented approach but proved unreliable in some environments)*
+
+```json
+{
+  "mcpServers": {
+    "kibana-mcp-alt": { 
+      "command": "/path/to/your/virtualenv/bin/python", 
+      "args": [
+        "/path/to/kibana-mcp/src/kibana_mcp/server.py"
       ],
       "options": {
           "cwd": "/path/to/kibana-mcp",
-          "env": {
-            // Ensure the server receives the required environment variables
-            "KIBANA_URL": "<your_kibana_url>",
-
-            // Option 1: API Key (Recommended)
-            "KIBANA_API_KEY": "<your_base64_encoded_api_key>"
-
-            // Option 2: Username/Password (Mutually exclusive with API Key)
-            // "KIBANA_USERNAME": "<your_kibana_username>",
-            // "KIBANA_PASSWORD": "<your_kibana_password>"
-          }
+          // Choose one auth method:
+          "KIBANA_API_KEY": "<your_base64_encoded_api_key>"
+          // OR
+          // "KIBANA_USERNAME": "<your_kibana_username>",
+          // "KIBANA_PASSWORD": "<your_kibana_password>"
       }
     }
   }
 }
 ```
-
-*(Note: Storing secrets directly in the config file is generally discouraged for production use. Consider more secure ways to manage environment variables if needed.)*
 
 ## Development
 
@@ -132,18 +157,6 @@ To prepare the package for distribution:
     uv publish
     ```
     Note: You'll need to configure PyPI credentials.
-
-### Debugging
-
-Debugging MCP servers via stdio can be tricky. We recommend using the [MCP Inspector](https://github.com/modelcontextprotocol/inspector).
-
-Launch the MCP Inspector via [`npm`](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (replace `/path/to/kibana-mcp`):
-
-```bash
-npx @modelcontextprotocol/inspector uv --directory /path/to/kibana-mcp run kibana-mcp
-```
-
-Access the URL provided by the Inspector in your browser.
 
 ## Local Development & Testing Environment
 
