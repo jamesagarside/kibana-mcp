@@ -157,16 +157,12 @@ async def _call_get_alerts(http_client: httpx.AsyncClient, limit: int = 20, sear
         result_text = json.dumps(alerts_data, indent=2)
 
     except httpx.RequestError as exc:
-        result_text += f"
-Error calling Kibana API: {exc}"
+        result_text += f"Error calling Kibana API: {exc}"
     except httpx.HTTPStatusError as exc:
-        result_text += f"
-Kibana API returned error: {exc.response.status_code} - {exc.response.text}"
+        result_text += f"Kibana API returned error: {exc.response.status_code} - {exc.response.text}"
     except json.JSONDecodeError:
-         result_text += f"
-Error parsing JSON response from Kibana API."
+         result_text += f"Error parsing JSON response from Kibana API."
     except Exception as e:
-         result_text += f"
-Unexpected error during alert fetch: {str(e)}"
+         result_text += f"Unexpected error during alert fetch: {str(e)}"
 
     return result_text 

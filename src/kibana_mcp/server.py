@@ -3,169 +3,183 @@ import os
 import httpx
 import base64
 from typing import List, Optional, Dict, Callable, Awaitable
+import logging
 
-# Ensure correct import path if models was moved
-from mcp.server.models import InitializationOptions
+# Import FastMCP and types
+from fastmcp import FastMCP
 import mcp.types as types
-from mcp.server import NotificationOptions, Server
-import mcp.server.stdio
-# Assuming pydantic might be needed by resources/prompts if they use AnyUrl etc.
-from pydantic import AnyUrl
 
-# Import tool handlers
-from .tools import handle_list_tools, _call_tag_alert, _call_adjust_alert_severity, _call_get_alerts
-# Import new resource handlers
-from .resources import handle_list_resources, handle_read_resource
-# Import new prompt handlers
-from .prompts import handle_list_prompts, handle_get_prompt
+# Import handler implementations using absolute paths
+from kibana_mcp.tools import (_call_tag_alert, _call_adjust_alert_severity, _call_get_alerts)
+from kibana_mcp.resources import handle_list_resources, handle_read_resource
+from kibana_mcp.prompts import handle_list_prompts, handle_get_prompt
 
-# Initialize MCP server
-server = Server("kibana-mcp")
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("kibana-mcp")
 
-# Initialize httpx client (configured later)
+# --- Global MCP Instance and HTTP Client ---
+logger.info("Initializing Kibana MCP Server (FastMCP)...")
+mcp = FastMCP("kibana-mcp")
 http_client: httpx.AsyncClient | None = None
 
-# --- Tool Function Mapping ---
-# Define a type hint for async tool functions
-ToolFunction = Callable[[httpx.AsyncClient, Dict], Awaitable[str]]
+# --- Tool Function Mapping REMOVED ---
+# ToolFunction = Callable[[httpx.AsyncClient, Dict], Awaitable[str]]
+# TOOL_FUNCTION_MAP: Dict[str, ToolFunction] = {
+#     "tag_alert": _call_tag_alert,
+#     "adjust_alert_severity": _call_adjust_alert_severity,
+#     "get_alerts": _call_get_alerts,
+# }
 
-TOOL_FUNCTION_MAP: Dict[str, ToolFunction] = {
-    "tag_alert": _call_tag_alert,
-    "adjust_alert_severity": _call_adjust_alert_severity,
-    "get_alerts": _call_get_alerts,
-}
-# --- End Tool Function Mapping ---
-
-# Remove the decorator, we will call this function manually
-# @server.initialize
-def configure_client(): # Remove options parameter
-    """
-    Configure the httpx client after initialization using env vars.
-    Supports API Key (KIBANA_API_KEY) or Username/Password (KIBANA_USERNAME, KIBANA_PASSWORD).
-    API Key is prioritized if both are provided.
-    """
+def configure_http_client():
+    """Configure the global httpx client using environment variables."""
     global http_client
     kibana_url = os.getenv("KIBANA_URL")
-    # Expecting the API key value to be already Base64 encoded "id:secret"
     encoded_api_key = os.getenv("KIBANA_API_KEY")
     kibana_username = os.getenv("KIBANA_USERNAME")
     kibana_password = os.getenv("KIBANA_PASSWORD")
 
     if not kibana_url:
+        logger.error("KIBANA_URL environment variable not set.")
         raise ValueError("KIBANA_URL environment variable not set.")
 
-    headers = {
-        "kbn-xsrf": "true", # Kibana requires this header
-        "Content-Type": "application/json"
-    }
+    headers = {"kbn-xsrf": "true", "Content-Type": "application/json"}
     auth_config = {}
     auth_method_used = "None"
 
-    # Prioritize API Key
     if encoded_api_key:
-        print("Using API Key authentication.")
-        # Prepend "ApiKey " if it's not already there (common mistake)
+        logger.info("Configuring authentication using API Key.")
         auth_header = encoded_api_key if encoded_api_key.strip().startswith("ApiKey ") else f"ApiKey {encoded_api_key.strip()}"
         headers["Authorization"] = auth_header
         auth_method_used = "API Key"
     elif kibana_username and kibana_password:
-        print(f"Using Basic authentication for user: {kibana_username}")
+        logger.info(f"Configuring authentication using Basic auth for user: {kibana_username}")
         auth_config["auth"] = (kibana_username, kibana_password)
         auth_method_used = "Username/Password"
     else:
-        raise ValueError("Kibana authentication not configured. Set either KIBANA_API_KEY or both KIBANA_USERNAME and KIBANA_PASSWORD environment variables.")
+        logger.error("Kibana authentication not configured.")
+        raise ValueError("Kibana authentication not configured. Set KIBANA_API_KEY or both KIBANA_USERNAME/PASSWORD.")
 
-    print(f"Configuring HTTP client for Kibana at {kibana_url} using {auth_method_used}.")
-    # Consider making verify configurable via env var as well for non-local environments
+    logger.info(f"Creating HTTP client for Kibana at {kibana_url} using {auth_method_used}.")
     http_client = httpx.AsyncClient(
-        base_url=kibana_url,
-        headers=headers,
-        timeout=30.0,
-        verify=False, # Added verify=False for local testing ease, set True for production
-        **auth_config
+        base_url=kibana_url, headers=headers, timeout=30.0, verify=False, **auth_config
     )
 
-# Remove the decorator, call manually in main's finally block
-# @server.shutdown
-async def close_client():
-    """Close the httpx client on shutdown."""
+async def close_http_client():
+    """Close the global httpx client."""
     global http_client
     if http_client:
+        logger.info("Closing HTTP client...")
         await http_client.aclose()
         http_client = None
+        logger.info("HTTP client closed.")
 
-# Register resource handlers
-server.list_resources()(handle_list_resources)
-server.read_resource()(handle_read_resource)
+# --- Handler Functions with FastMCP Decorators ---
 
-# Register prompt handlers
-server.list_prompts()(handle_list_prompts)
-server.get_prompt()(handle_get_prompt)
+# NOTE: list_* handlers might need specific registration if not automatic
 
-# Register tool handlers
-server.list_tools()(handle_list_tools)
+@mcp.resource("alert://{alert_id}")
+async def read_alert_resource(alert_id: str) -> str:
+    uri = f"alert://{alert_id}"
+    logger.info(f"Handling read_resource for URI: {uri}")
+    return await handle_read_resource(uri=uri)
 
-@server.call_tool()
-async def handle_call_tool(
-    name: str, arguments: dict | None
-) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
-    """
-    Handle tool execution requests by dispatching to the correct function based on the tool name.
-    """
-    global http_client
+@mcp.prompt("prompt://{prompt_name}")
+async def get_kibana_prompt(prompt_name: str) -> types.GetPromptResult:
+    uri = f"prompt://{prompt_name}"
+    logger.info(f"Handling get_prompt for URI: {uri}")
+    return await handle_get_prompt(uri=uri)
+
+# --- Individual Tool Handlers ---
+
+# NOTE: Assumes existence of Arg models (TagAlertArgs, etc.) in tools.py for type hints.
+# If not, use direct type hints (e.g., alert_id: str, tags: List[str]).
+# Docstrings here become the tool descriptions.
+
+@mcp.tool()
+async def tag_alert(alert_id: str, tags: List[str]) -> list[types.TextContent]:
+    """Adds one or more tags to a specific Kibana security alert."""
     if not http_client:
-        # This should technically not happen if initialization succeeded
-        raise RuntimeError("HTTP client not initialized. Ensure Kibana connection details are correctly set in environment variables.")
-    if not arguments:
-        # Allow tools that might not need arguments, let the specific tool function validate
-        arguments = {} # Provide an empty dict if None
-
-    if name in TOOL_FUNCTION_MAP:
-        try:
-            # Pass the http_client and the arguments dictionary to the specific tool function
-            result_text = await TOOL_FUNCTION_MAP[name](http_client=http_client, **arguments)
-        except TypeError as e:
-            # Catch errors if arguments don't match the function signature (e.g., missing required args)
-            raise ValueError(f"Invalid arguments provided for tool '{name}': {e}")
-        except Exception as e:
-            # Catch other potential errors from the tool function itself
-            # Log the full error for debugging if possible
-            print(f"Error executing tool '{name}': {e}")
-            raise RuntimeError(f"An error occurred while executing tool '{name}'.")
-    else:
-        raise ValueError(f"Unknown tool: {name}")
-
-    return [types.TextContent(type="text", text=str(result_text))] # Ensure result is string
-
-async def main():
-    """Main entry point to run the server."""
-    # Configure the client before starting the server run loop
-    configure_client()
-
+        raise RuntimeError("HTTP client not initialized.")
+    logger.info(f"Executing tool 'tag_alert' for alert {alert_id} with tags: {tags}")
     try:
-        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-            await server.run(
-                read_stream,
-                write_stream,
-                InitializationOptions(
-                    server_name="kibana-mcp",
-                    server_version="0.1.0",
-                    capabilities=server.get_capabilities(
-                        # Pass a NotificationOptions object, even if all are False
-                        notification_options=NotificationOptions(
-                            prompts_changed=False,
-                            resources_changed=False,
-                            tools_changed=False,
-                        ),
-                        experimental_capabilities={},
-                    ),
-                ),
-            )
+        # Assuming _call_tag_alert takes keyword arguments matching the signature
+        result_text = await _call_tag_alert(http_client=http_client, alert_id=alert_id, tags=tags)
+        logger.info(f"Tool 'tag_alert' executed successfully.")
+        return [types.TextContent(type="text", text=str(result_text))]
+    except Exception as e:
+        logger.error(f"Error executing tool 'tag_alert': {e}", exc_info=True)
+        raise RuntimeError(f"An error occurred while executing tool 'tag_alert'.")
+
+@mcp.tool()
+async def adjust_alert_severity(alert_id: str, new_severity: str) -> list[types.TextContent]:
+    """Changes the severity of a specific Kibana security alert."""
+    if not http_client:
+        raise RuntimeError("HTTP client not initialized.")
+    logger.info(f"Executing tool 'adjust_alert_severity' for alert {alert_id} to severity: {new_severity}")
+    try:
+        # Assuming _call_adjust_alert_severity takes keyword arguments matching the signature
+        result_text = await _call_adjust_alert_severity(http_client=http_client, alert_id=alert_id, new_severity=new_severity)
+        logger.info(f"Tool 'adjust_alert_severity' executed successfully.")
+        return [types.TextContent(type="text", text=str(result_text))]
+    except Exception as e:
+        logger.error(f"Error executing tool 'adjust_alert_severity': {e}", exc_info=True)
+        raise RuntimeError(f"An error occurred while executing tool 'adjust_alert_severity'.")
+
+@mcp.tool()
+async def get_alerts(status: Optional[str] = None, 
+                     severity: Optional[List[str]] = None, 
+                     time_range_field: Optional[str] = '@timestamp', 
+                     time_range_start: Optional[str] = None, 
+                     time_range_end: Optional[str] = None, 
+                     max_alerts: Optional[int] = 50
+                     ) -> list[types.TextContent]:
+    """Fetches recent Kibana security alerts, optionally filtering them."""
+    if not http_client:
+        raise RuntimeError("HTTP client not initialized.")
+    logger.info(f"Executing tool 'get_alerts' with filters - Status: {status}, Severity: {severity}, TimeField: {time_range_field}, Start: {time_range_start}, End: {time_range_end}, Max: {max_alerts}")
+    try:
+        # Assuming _call_get_alerts takes keyword arguments matching the signature
+        args_dict = {
+            'status': status,
+            'severity': severity,
+            'time_range_field': time_range_field,
+            'time_range_start': time_range_start,
+            'time_range_end': time_range_end,
+            'max_alerts': max_alerts
+        }
+        result_text = await _call_get_alerts(http_client=http_client, **args_dict)
+        logger.info(f"Tool 'get_alerts' executed successfully.")
+        return [types.TextContent(type="text", text=str(result_text))]
+    except Exception as e:
+        logger.error(f"Error executing tool 'get_alerts': {e}", exc_info=True)
+        raise RuntimeError(f"An error occurred while executing tool 'get_alerts'.")
+
+def run_server():
+    """Configure client, run the MCP server loop, and handle cleanup."""
+    global http_client # Need global to ensure cleanup happens
+    http_client = None # Ensure it's None initially
+    try:
+        configure_http_client() # Configure global client
+        logger.info(f"Starting FastMCP server run loop...")
+        # Call the synchronous run method, which handles the event loop
+        mcp.run()
+        logger.info(f"FastMCP server run loop finished normally.")
+    except Exception as e:
+        logger.error(f"Error during server run: {e}", exc_info=True)
     finally:
-        # Ensure client is closed even if server.run errors out
-        print("Closing HTTP client...") # Optional: for confirmation
-        await close_client()
+        logger.info("Shutting down server...")
+        # Need to run the async close in a temporary event loop
+        if http_client:
+            try:
+                # Create a new loop *just* for closing the client if run finished/errored
+                asyncio.run(close_http_client())
+            except RuntimeError as re:
+                # Handle case where loop might already be closed or another issue
+                logger.error(f"Error closing HTTP client in finally block: {re}", exc_info=True)
+        else:
+             logger.info("HTTP client was not initialized or already closed.")
 
 # Allows running the server directly using `python -m kibana_mcp` or `uv run kibana-mcp`
 if __name__ == "__main__":
-    asyncio.run(main())
+    run_server() # Call the synchronous function directly
