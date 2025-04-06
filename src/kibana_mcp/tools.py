@@ -11,26 +11,29 @@ tool_logger = logging.getLogger("kibana-mcp.tools")
 
 async def _call_tag_alert(http_client: httpx.AsyncClient, alert_id: str, tags_to_add: List[str]) -> str:
     """Handles the API interaction for tagging an alert signal."""
-    # Correct endpoint for bulk actions on signals
-    api_path = "/api/detection_engine/signals/bulk_actions"
+    # Correct endpoint based on Kibana v8 documentation for adding/removing tags
+    api_path = "/api/detection_engine/signals/tags"
     result_text = f"Attempting to add tags {tags_to_add} to alert signal {alert_id}..."
 
-    # Construct the bulk action payload
+    # Construct the payload required by the /signals/tags endpoint
     payload = {
-        "signal_ids": [alert_id], # Target specific signal ID
-        "action": "add_tags",   # Action to perform
-        "tags": tags_to_add      # Tags to add
-        # Note: No need to fetch existing tags; this endpoint likely appends.
-        # Check docs if merging behavior is different.
+        "ids": [alert_id], # Target specific signal ID (using 'ids' key)
+        "tags": {          # Nested 'tags' object
+            "tags_to_add": tags_to_add,
+            "tags_to_remove": [] # Explicitly sending empty list for removal
+        }
     }
 
     try:
+        # The API docs mention Elastic-Api-Version header, but let's try without first
+        # If issues persist, consider adding: headers={"Elastic-Api-Version": "2023-10-31"}
         response = await http_client.post(api_path, json=payload)
         response.raise_for_status()
-        # Check response content for success/failure details if available
+        # Process the response which might be an Elasticsearch update-by-query response
         response_data = response.json()
-        success_msg = response_data.get("message", "Update successful (check response details).")
-        result_text += f"\nKibana API response: {response.status_code} - {success_msg}"
+        # Extract meaningful info if possible, e.g., 'updated' count
+        updated_count = response_data.get('updated', 'N/A')
+        result_text += f"\nKibana API response: {response.status_code} - Updated: {updated_count}"
 
     except httpx.RequestError as exc:
         result_text += f"\nError calling Kibana API ({api_path}): {exc}"
