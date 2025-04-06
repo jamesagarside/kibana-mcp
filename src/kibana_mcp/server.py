@@ -10,7 +10,7 @@ from fastmcp import FastMCP
 import mcp.types as types
 
 # Import handler implementations using absolute paths
-from kibana_mcp.tools import (_call_tag_alert, _call_adjust_alert_severity, _call_get_alerts)
+from kibana_mcp.tools import (_call_tag_alert, _call_adjust_alert_status, _call_get_alerts)
 from kibana_mcp.resources import handle_list_resources, handle_read_resource
 from kibana_mcp.prompts import handle_list_prompts, handle_get_prompt
 
@@ -98,13 +98,12 @@ async def get_kibana_prompt(prompt_name: str) -> types.GetPromptResult:
 
 @mcp.tool()
 async def tag_alert(alert_id: str, tags: List[str]) -> list[types.TextContent]:
-    """Adds one or more tags to a specific Kibana security alert."""
+    """Adds one or more tags to a specific Kibana security alert signal."""
     if not http_client:
         raise RuntimeError("HTTP client not initialized.")
     logger.info(f"Executing tool 'tag_alert' for alert {alert_id} with tags: {tags}")
     try:
-        # Assuming _call_tag_alert takes keyword arguments matching the signature
-        result_text = await _call_tag_alert(http_client=http_client, alert_id=alert_id, tags=tags)
+        result_text = await _call_tag_alert(http_client=http_client, alert_id=alert_id, tags_to_add=tags)
         logger.info(f"Tool 'tag_alert' executed successfully.")
         return [types.TextContent(type="text", text=str(result_text))]
     except Exception as e:
@@ -112,43 +111,38 @@ async def tag_alert(alert_id: str, tags: List[str]) -> list[types.TextContent]:
         raise RuntimeError(f"An error occurred while executing tool 'tag_alert'.")
 
 @mcp.tool()
-async def adjust_alert_severity(alert_id: str, new_severity: str) -> list[types.TextContent]:
-    """Changes the severity of a specific Kibana security alert."""
+async def adjust_alert_status(alert_id: str, new_status: str) -> list[types.TextContent]:
+    """Changes the status of a specific Kibana security alert signal."""
+    # Add basic validation for status values accepted by the API
+    valid_statuses = ["open", "acknowledged", "closed"]
+    if new_status not in valid_statuses:
+         # Return error message directly without calling API
+         err_msg = f"Invalid status '{new_status}'. Must be one of {valid_statuses}."
+         logger.warning(f"Tool 'adjust_alert_status' called with invalid status for alert {alert_id}: {new_status}")
+         return [types.TextContent(type="text", text=err_msg)]
+
     if not http_client:
         raise RuntimeError("HTTP client not initialized.")
-    logger.info(f"Executing tool 'adjust_alert_severity' for alert {alert_id} to severity: {new_severity}")
+    logger.info(f"Executing tool 'adjust_alert_status' for alert {alert_id} to status: {new_status}")
     try:
-        # Assuming _call_adjust_alert_severity takes keyword arguments matching the signature
-        result_text = await _call_adjust_alert_severity(http_client=http_client, alert_id=alert_id, new_severity=new_severity)
-        logger.info(f"Tool 'adjust_alert_severity' executed successfully.")
+        # Call the renamed implementation function
+        result_text = await _call_adjust_alert_status(http_client=http_client, alert_id=alert_id, new_status=new_status)
+        logger.info(f"Tool 'adjust_alert_status' executed successfully.")
         return [types.TextContent(type="text", text=str(result_text))]
     except Exception as e:
-        logger.error(f"Error executing tool 'adjust_alert_severity': {e}", exc_info=True)
-        raise RuntimeError(f"An error occurred while executing tool 'adjust_alert_severity'.")
+        logger.error(f"Error executing tool 'adjust_alert_status': {e}", exc_info=True)
+        raise RuntimeError(f"An error occurred while executing tool 'adjust_alert_status'.")
 
 @mcp.tool()
-async def get_alerts(status: Optional[str] = None, 
-                     severity: Optional[List[str]] = None, 
-                     time_range_field: Optional[str] = '@timestamp', 
-                     time_range_start: Optional[str] = None, 
-                     time_range_end: Optional[str] = None, 
-                     max_alerts: Optional[int] = 50
+async def get_alerts(limit: Optional[int] = 20, 
+                     search_text: Optional[str] = None
                      ) -> list[types.TextContent]:
-    """Fetches recent Kibana security alerts, optionally filtering them."""
+    """Fetches recent Kibana security alert signals, optionally filtering by text and limiting quantity."""
     if not http_client:
         raise RuntimeError("HTTP client not initialized.")
-    logger.info(f"Executing tool 'get_alerts' with filters - Status: {status}, Severity: {severity}, TimeField: {time_range_field}, Start: {time_range_start}, End: {time_range_end}, Max: {max_alerts}")
+    logger.info(f"Executing tool 'get_alerts' with limit: {limit}, search_text: {search_text}")
     try:
-        # Assuming _call_get_alerts takes keyword arguments matching the signature
-        args_dict = {
-            'status': status,
-            'severity': severity,
-            'time_range_field': time_range_field,
-            'time_range_start': time_range_start,
-            'time_range_end': time_range_end,
-            'max_alerts': max_alerts
-        }
-        result_text = await _call_get_alerts(http_client=http_client, **args_dict)
+        result_text = await _call_get_alerts(http_client=http_client, limit=limit, search_text=search_text)
         logger.info(f"Tool 'get_alerts' executed successfully.")
         return [types.TextContent(type="text", text=str(result_text))]
     except Exception as e:
