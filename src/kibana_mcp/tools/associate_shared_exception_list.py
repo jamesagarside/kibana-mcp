@@ -5,15 +5,16 @@ import logging
 
 tool_logger = logging.getLogger("kibana-mcp.tools")
 
-async def _call_add_exception_list_to_rule(
+# Renamed function
+async def _call_associate_shared_exception_list(
     http_client: httpx.AsyncClient,
     rule_id: str,             # The human-readable rule_id
-    exception_list_id: str, # The list_id of the exception list to add
+    exception_list_id: str, # The list_id of the shared exception list to associate
     exception_list_type: str = 'detection', # Type of the list (e.g., detection, endpoint)
     exception_list_namespace: str = 'single' # Namespace type ('single' or 'agnostic')
 ) -> str:
-    """Adds an existing exception list to a detection rule's configuration using PATCH."""
-    result_text = f"Attempting to add exception list '{exception_list_id}' to rule '{rule_id}'..."
+    """Associates an existing shared exception list with a detection rule using PATCH."""
+    result_text = f"Attempting to associate shared exception list '{exception_list_id}' with rule '{rule_id}'..."
     get_rule_api_path = f"/api/detection_engine/rules?rule_id={rule_id}" 
     get_list_api_path = f"/api/exception_lists" # Endpoint for getting list details
     patch_rule_api_path = "/api/detection_engine/rules" # PATCH endpoint
@@ -46,7 +47,7 @@ async def _call_add_exception_list_to_rule(
         get_rule_response.raise_for_status()
         rule_config = get_rule_response.json()
         
-        # Extract internal ID (UUID) needed for the PUT request path
+        # Extract internal ID (UUID)
         rule_internal_id = rule_config.get("id")
         if not rule_internal_id:
             result_text += "\\nError: Could not extract internal 'id' (UUID) from fetched rule configuration."
@@ -56,7 +57,6 @@ async def _call_add_exception_list_to_rule(
         result_text += "\\nSuccessfully fetched rule configuration."
             
         # 2. Modify the exceptions_list
-        # The rule object directly contains the exceptions_list field
         exceptions_list = rule_config.get("exceptions_list", [])
         
         # Check if the list is already present using the internal ID
@@ -77,12 +77,15 @@ async def _call_add_exception_list_to_rule(
             "namespace_type": exception_list_namespace
         }
         exceptions_list.append(new_exception_ref)
-        rule_config["exceptions_list"] = exceptions_list
-        result_text += f"\\nAdded reference for exception list '{exception_list_id}' to rule configuration."
+        # No need to assign back to rule_config["exceptions_list"] here, 
+        # we only need the final list for the PATCH payload.
+
+        result_text += f"\\nConstructed new exceptions_list for PATCH payload."
 
         # 3. Construct PATCH payload
         patch_payload = {
             "id": rule_internal_id, # Identify rule by internal ID
+            # "version": rule_version, # Removed version handling
             "exceptions_list": exceptions_list # Provide the full updated list
         }
 
@@ -92,18 +95,18 @@ async def _call_add_exception_list_to_rule(
         patch_response = await http_client.patch(patch_rule_api_path, json=patch_payload)
         patch_response.raise_for_status()
         updated_rule_data = patch_response.json()
-        result_text += f"\\nSuccessfully updated rule with internal ID '{rule_internal_id}' to include exception list '{exception_list_id}'."
+        result_text += f"\\nSuccessfully associated shared exception list '{exception_list_id}' with rule '{rule_id}' (internal ID: '{rule_internal_id}')."
         result_text += f"\\nUpdate Response:\\n{json.dumps(updated_rule_data, indent=2)}"
 
     except httpx.RequestError as exc:
         result_text += f"\\nError calling Kibana API: {exc}"
     except httpx.HTTPStatusError as exc:
         # Provide more context based on which request failed
-        failed_op = "fetching rule" if exc.request.method == "GET" else "updating rule"
+        failed_op = "fetching shared list" if get_list_api_path in exc.request.url.path else "fetching rule" if get_rule_api_path in exc.request.url.path else "updating rule"
         result_text += f"\\nKibana API error during {failed_op}: {exc.response.status_code} - {exc.response.text}"
     except json.JSONDecodeError as exc:
         result_text += f"\\nError parsing JSON response from Kibana API: {exc}"
     except Exception as e:
-        result_text += f"\\nUnexpected error adding exception list to rule: {str(e)}"
+        result_text += f"\\nUnexpected error associating shared exception list with rule: {str(e)}"
         
     return result_text 

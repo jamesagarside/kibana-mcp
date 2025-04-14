@@ -7,7 +7,7 @@ from .get_alerts import _call_get_alerts
 from .get_rule_exceptions import _call_get_rule_exceptions
 from .add_rule_exception_items import _call_add_rule_exception_items
 from .create_exception_list import _call_create_exception_list
-from .add_exception_list_to_rule import _call_add_exception_list_to_rule
+from .associate_shared_exception_list import _call_associate_shared_exception_list
 from .find_rules import _call_find_rules
 
 # Import utility function
@@ -21,7 +21,7 @@ __all__ = [
     '_call_get_rule_exceptions',
     '_call_add_rule_exception_items',
     '_call_create_exception_list',
-    '_call_add_exception_list_to_rule',
+    '_call_associate_shared_exception_list',
     '_call_find_rules',
     'execute_tool_safely'
 ] 

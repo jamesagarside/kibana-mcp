@@ -16,7 +16,7 @@ from kibana_mcp.tools import (
     _call_get_rule_exceptions, 
     _call_add_rule_exception_items, 
     _call_create_exception_list,
-    _call_add_exception_list_to_rule,
+    _call_associate_shared_exception_list,
     _call_find_rules,
     execute_tool_safely
 )
@@ -197,17 +197,17 @@ async def create_exception_list(
     )
 
 @mcp.tool()
-async def add_exception_list_to_rule(
+async def associate_shared_exception_list(
     rule_id: str,
     exception_list_id: str,
     exception_list_type: str = 'detection',
     exception_list_namespace: str = 'single'
 ) -> list[types.TextContent]:
-    """Associates an existing exception list with a detection rule."""
+    """Associates an existing shared exception list (not a rule default) with a detection rule."""
     # Delegate execution to the safe wrapper
     return await execute_tool_safely(
-        tool_name='add_exception_list_to_rule',
-        tool_impl_func=_call_add_exception_list_to_rule,
+        tool_name='associate_shared_exception_list',
+        tool_impl_func=_call_associate_shared_exception_list,
         http_client=http_client,
         rule_id=rule_id,
         exception_list_id=exception_list_id,
