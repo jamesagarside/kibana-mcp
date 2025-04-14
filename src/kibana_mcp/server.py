@@ -9,8 +9,16 @@ from fastmcp import FastMCP
 import mcp.types as types
 
 # Import handler implementations using absolute paths
-from kibana_mcp.tools import (_call_tag_alert, _call_adjust_alert_status, _call_get_alerts, 
-                          execute_tool_safely)
+from kibana_mcp.tools import (
+    _call_tag_alert, 
+    _call_adjust_alert_status, 
+    _call_get_alerts, 
+    _call_get_rule_exceptions, 
+    _call_add_rule_exception_items, 
+    _call_create_exception_list,
+    _call_add_exception_list_to_rule,
+    execute_tool_safely
+)
 from kibana_mcp.resources import handle_read_resource
 from kibana_mcp.prompts import handle_get_prompt
 
@@ -127,6 +135,83 @@ async def get_alerts(limit: int = 20,
         http_client=http_client,
         limit=limit, 
         search_text=search_text
+    )
+
+@mcp.tool()
+async def add_rule_exception_items(rule_id: str, items: List[Dict]) -> list[types.TextContent]:
+    """Adds one or more exception items to a specific detection rule's exception list."""
+    # Delegate execution to the safe wrapper
+    return await execute_tool_safely(
+        tool_name='add_rule_exception_items',
+        tool_impl_func=_call_add_rule_exception_items,
+        http_client=http_client,
+        rule_id=rule_id,
+        items=items
+    )
+
+@mcp.tool()
+async def get_rule_exceptions(rule_id: str) -> list[types.TextContent]:
+    """Retrieves the exception items associated with a specific detection rule."""
+    # Delegate execution to the safe wrapper
+    return await execute_tool_safely(
+        tool_name='get_rule_exceptions',
+        tool_impl_func=_call_get_rule_exceptions,
+        http_client=http_client,
+        rule_id=rule_id
+    )
+
+@mcp.tool()
+async def create_exception_list(
+    list_id: str,
+    name: str,
+    description: str,
+    type: str, # e.g., 'detection', 'endpoint'
+    namespace_type: str = 'single',
+    tags: Optional[List[str]] = None,
+    os_types: Optional[List[str]] = None
+) -> list[types.TextContent]:
+    """Creates a new exception list container.
+
+    Args:
+        list_id: Human-readable identifier for the list (e.g., 'trusted-ips').
+        name: Display name for the exception list.
+        description: Description of the list's purpose.
+        type: Type of list ('detection', 'endpoint', etc.).
+        namespace_type: Scope ('single' or 'agnostic', default: 'single').
+        tags: Optional list of tags.
+        os_types: Optional list of OS types ('linux', 'macos', 'windows').
+    """
+    # Delegate execution to the safe wrapper
+    return await execute_tool_safely(
+        tool_name='create_exception_list',
+        tool_impl_func=_call_create_exception_list,
+        http_client=http_client,
+        list_id=list_id,
+        name=name,
+        description=description,
+        type=type,
+        namespace_type=namespace_type,
+        tags=tags,
+        os_types=os_types
+    )
+
+@mcp.tool()
+async def add_exception_list_to_rule(
+    rule_id: str,
+    exception_list_id: str,
+    exception_list_type: str = 'detection',
+    exception_list_namespace: str = 'single'
+) -> list[types.TextContent]:
+    """Associates an existing exception list with a detection rule."""
+    # Delegate execution to the safe wrapper
+    return await execute_tool_safely(
+        tool_name='add_exception_list_to_rule',
+        tool_impl_func=_call_add_exception_list_to_rule,
+        http_client=http_client,
+        rule_id=rule_id,
+        exception_list_id=exception_list_id,
+        exception_list_type=exception_list_type,
+        exception_list_namespace=exception_list_namespace
     )
 
 def run_server():
