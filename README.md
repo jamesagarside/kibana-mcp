@@ -2,7 +2,7 @@
 
 ![Kibana MCP Demo](faster-server-demo.gif)
 
-This project provides a Model Context Protocol (MCP) server implementation that allows AI assistants to interact with Kibana Security alerts.
+This project provides a Model Context Protocol (MCP) server implementation that allows AI assistants to interact with Kibana Security functions, including alerts, rules, and exceptions.
 
 ## Features
 
@@ -18,7 +18,31 @@ This server exposes the following tools to MCP clients:
     *   `new_status` (string, required): The new status. Must be one of: "open", "acknowledged", "closed".
 *   **`get_alerts`**: Fetches recent Kibana security alert signals, optionally filtering by text and limiting quantity.
     *   `limit` (integer, optional, default: 20): Maximum number of alerts to return.
-    *   `search_text` (string, optional): Text to search for in alert signal fields.
+    *   `search_text` (string, optional, default: "*"): Text to search for across various alert fields (name, reason, description, host, user, etc.).
+*   **`get_rule_exceptions`**: Retrieves the exception items associated with a specific detection rule.
+    *   `rule_id` (string, required): The internal UUID of the detection rule.
+*   **`add_rule_exception_items`**: Adds one or more exception items to a specific detection rule's exception list. (Note: This implicitly creates a `rule_default` exception list if one doesn't exist, or adds to the existing one. It also requires the rule's internal UUID, not the human-readable `rule_id`.)
+    *   `rule_id` (string, required): The internal UUID of the detection rule to add exceptions to.
+    *   `items` (array of objects, required): A list of exception item objects to add. Each object should contain fields like `description`, `entries` (list of match conditions), `item_id`, `name`, `type`, etc., but **omit** the `list_id` field.
+*   **`create_exception_list`**: Creates a new exception list container.
+    *   `list_id` (string, required): Human-readable identifier for the list (e.g., 'trusted-ips').
+    *   `name` (string, required): Display name for the exception list.
+    *   `description` (string, required): Description of the list's purpose.
+    *   `type` (string, required): Type of list ('detection', 'endpoint', etc.).
+    *   `namespace_type` (string, optional, default: 'single'): Scope ('single' or 'agnostic').
+    *   `tags` (array of strings, optional): List of tags.
+    *   `os_types` (array of strings, optional): List of OS types ('linux', 'macos', 'windows').
+*   **`associate_shared_exception_list`**: Associates an existing shared exception list (not a rule default) with a detection rule.
+    *   `rule_id` (string, required): The human-readable `rule_id` of the detection rule.
+    *   `exception_list_id` (string, required): The human-readable `list_id` of the shared exception list to associate.
+    *   `exception_list_type` (string, optional, default: 'detection'): The type of the exception list.
+    *   `exception_list_namespace` (string, optional, default: 'single'): The namespace type of the exception list.
+*   **`find_rules`**: Finds detection rules, optionally filtering by KQL/Lucene, sorting, and paginating. (Note: Passing optional parameters like `filter` or `per_page` may encounter issues depending on the MCP client/framework version).
+    *   `filter` (string, optional): KQL or Lucene query string to filter rules.
+    *   `sort_field` (string, optional): Field to sort rules by (e.g., 'name', 'updated_at').
+    *   `sort_order` (string, optional): Sort order ('asc' or 'desc').
+    *   `page` (integer, optional): Page number for pagination (1-based).
+    *   `per_page` (integer, optional): Number of rules per page.
 
 ## Configuration
 
