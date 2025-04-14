@@ -17,6 +17,7 @@ from kibana_mcp.tools import (
     _call_add_rule_exception_items, 
     _call_create_exception_list,
     _call_add_exception_list_to_rule,
+    _call_find_rules,
     execute_tool_safely
 )
 from kibana_mcp.resources import handle_read_resource
@@ -212,6 +213,26 @@ async def add_exception_list_to_rule(
         exception_list_id=exception_list_id,
         exception_list_type=exception_list_type,
         exception_list_namespace=exception_list_namespace
+    )
+
+@mcp.tool()
+async def find_rules(
+    filter: Optional[str] = None,
+    sort_field: Optional[str] = None,
+    sort_order: Optional[str] = None,
+    page: Optional[int] = None,
+    per_page: Optional[int] = None
+) -> list[types.TextContent]:
+    """Finds detection rules, optionally filtering by KQL/Lucene, sorting, and paginating."""
+    return await execute_tool_safely(
+        tool_name='find_rules',
+        tool_impl_func=_call_find_rules,
+        http_client=http_client,
+        filter=filter,
+        sort_field=sort_field,
+        sort_order=sort_order,
+        page=page,
+        per_page=per_page
     )
 
 def run_server():
