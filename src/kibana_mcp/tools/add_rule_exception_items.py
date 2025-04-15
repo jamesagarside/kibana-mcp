@@ -8,7 +8,8 @@ tool_logger = logging.getLogger("kibana-mcp.tools")
 async def _call_add_rule_exception_items(http_client: httpx.AsyncClient, rule_id: str, items: List[Dict]) -> str:
     """Handles the API interaction for adding exception items to a rule's list."""
     # Endpoint from the provided documentation
-    api_path = f"/api/detection_engine/rules/{rule_id}/exceptions" # Assuming rule_id passed is the internal UUID for this call
+    # IMPORTANT: rule_id must be the internal UUID (id) of the rule, not the user-facing rule_id
+    api_path = f"/api/detection_engine/rules/{rule_id}/exceptions"
     result_text = f"Attempting to add {len(items)} exception item(s) to rule {rule_id}..."
     
     # The payload structure requires the items under an "items" key
@@ -41,4 +42,4 @@ async def _call_add_rule_exception_items(http_client: httpx.AsyncClient, rule_id
     except Exception as e:
          result_text += f"\\nUnexpected error adding rule exception items: {str(e)}"
          
-    return result_text 
+    return result_text

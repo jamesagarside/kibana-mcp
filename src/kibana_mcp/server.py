@@ -150,7 +150,10 @@ async def get_alerts(limit: int = 20,
 
 @mcp.tool()
 async def add_rule_exception_items(rule_id: str, items: List[Dict]) -> list[types.TextContent]:
-    """Adds one or more exception items to a specific detection rule's exception list."""
+    """Adds one or more exception items to a specific detection rule's exception list.
+    
+    Note: The rule_id parameter must be the Kibana internal UUID (id) of the rule, 
+    not the user-facing rule_id. You can get the internal UUID by using the find_rules tool."""
     # Delegate execution to the safe wrapper
     return await execute_tool_safely(
         tool_name='add_rule_exception_items',
@@ -162,7 +165,10 @@ async def add_rule_exception_items(rule_id: str, items: List[Dict]) -> list[type
 
 @mcp.tool()
 async def get_rule_exceptions(rule_id: str) -> list[types.TextContent]:
-    """Retrieves the exception items associated with a specific detection rule."""
+    """Retrieves the exception items associated with a specific detection rule.
+    
+    Note: The rule_id parameter must be the Kibana internal UUID (id) of the rule, 
+    not the user-facing rule_id. You can get the internal UUID by using the find_rules tool."""
     # Delegate execution to the safe wrapper
     return await execute_tool_safely(
         tool_name='get_rule_exceptions',
