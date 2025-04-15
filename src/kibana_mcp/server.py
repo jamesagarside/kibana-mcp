@@ -262,7 +262,23 @@ async def find_rules(
     page: Optional[int] = None,
     per_page: Optional[int] = None
 ) -> list[types.TextContent]:
-    """Finds detection rules, optionally filtering by KQL/Lucene, sorting, and paginating."""
+    """Finds detection rules, optionally filtering by KQL/Lucene, sorting, and paginating.
+    
+    Args:
+        filter: KQL or Lucene query string to filter rules. Field names must be prefixed with 
+               'alert.attributes.' (e.g., 'alert.attributes.name:"Rule Name"' to filter by name).
+               Example: 'alert.attributes.name:"Mock net10 alert"'
+        sort_field: Field to sort by. Valid values are: 'created_at', 'createdAt', 'enabled', 
+                   'execution_summary.last_execution.date', 
+                   'execution_summary.last_execution.metrics.execution_gap_duration_s',
+                   'execution_summary.last_execution.metrics.total_indexing_duration_ms', 
+                   'execution_summary.last_execution.metrics.total_search_duration_ms',
+                   'execution_summary.last_execution.status', 'name', 'risk_score', 
+                   'riskScore', 'severity', 'updated_at', or 'updatedAt'.
+        sort_order: Sort order. Valid values are 'asc' or 'desc'.
+        page: Page number (minimum 1, default 1).
+        per_page: Rules per page (minimum 0, default 20).
+    """
     return await execute_tool_safely(
         tool_name='find_rules',
         tool_impl_func=_call_find_rules,

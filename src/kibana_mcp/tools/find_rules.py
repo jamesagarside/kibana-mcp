@@ -2,34 +2,51 @@ import httpx
 from typing import List, Optional, Dict
 import json
 import logging
+from pydantic import ValidationError
+
+from kibana_mcp.models.rule_models import FindRulesRequest
 
 tool_logger = logging.getLogger("kibana-mcp.tools")
 
 async def _call_find_rules(
     http_client: httpx.AsyncClient,
-    filter: Optional[str] = None,      # KQL or Lucene query string
+    filter: Optional[str] = None,      # KQL or Lucene query string (e.g., 'alert.attributes.name:"Rule Name"')
     sort_field: Optional[str] = None,  # Field to sort by (e.g., 'name', 'updated_at')
     sort_order: Optional[str] = None,  # 'asc' or 'desc'
     page: Optional[int] = None,        # Page number (1-based)
     per_page: Optional[int] = None     # Items per page (default typically 20)
 ) -> str:
     """Handles the API interaction for finding detection rules."""
+    # Validate input using Pydantic model
+    try:
+        # Create the request model
+        request = FindRulesRequest(
+            filter=filter,
+            sort_field=sort_field,
+            sort_order=sort_order,
+            page=page,
+            per_page=per_page
+        )
+        # Validation passed
+        result_text = f"Validated and attempting to find rules"
+    except ValidationError as e:
+        return f"Input validation error: {str(e)}"
+    
     api_path = "/api/detection_engine/rules/_find"
-    result_text = f"Attempting to find rules"
 
-    # Construct query parameters
+    # Construct query parameters from validated request
     params = {}
-    if filter:
-        params["filter"] = filter
-        result_text += f" with filter '{filter}'"
-    if sort_field:
-        params["sort_field"] = sort_field
-    if sort_order:
-        params["sort_order"] = sort_order
-    if page:
-        params["page"] = page
-    if per_page:
-        params["per_page"] = per_page
+    if request.filter:
+        params["filter"] = request.filter
+        result_text += f" with filter '{request.filter}'"
+    if request.sort_field:
+        params["sort_field"] = request.sort_field.value  # Get the string value from the enum
+    if request.sort_order:
+        params["sort_order"] = request.sort_order.value  # Get the string value from the enum
+    if request.page:
+        params["page"] = request.page
+    if request.per_page:
+        params["per_page"] = request.per_page
     
     result_text += "..."
 
@@ -48,4 +65,4 @@ async def _call_find_rules(
     except Exception as e:
          result_text += f"\nUnexpected error finding rules: {str(e)}"
          
-    return result_text 
+    return result_text
