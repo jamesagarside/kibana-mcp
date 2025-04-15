@@ -152,8 +152,31 @@ async def get_alerts(limit: int = 20,
 async def add_rule_exception_items(rule_id: str, items: List[Dict]) -> list[types.TextContent]:
     """Adds one or more exception items to a specific detection rule's exception list.
     
-    Note: The rule_id parameter must be the Kibana internal UUID (id) of the rule, 
-    not the user-facing rule_id. You can get the internal UUID by using the find_rules tool."""
+    The rule_id parameter should be the human-readable rule_id.
+    The tool will automatically look up the internal UUID needed for the API call.
+    
+    Each exception item should follow this structure:
+    {
+      "name": "Sample Exception List Item",
+      "tags": ["tag1", "tag2"],
+      "type": "simple",
+      "entries": [
+        {
+          "type": "exists",
+          "field": "some.field.path",
+          "operator": "included" or "excluded"
+        },
+        {
+          "type": "match_any",
+          "field": "another.field",
+          "value": ["value1", "value2"],
+          "operator": "included" or "excluded"
+        }
+      ],
+      "description": "Description of this exception item",
+      "namespace_type": "single" or "agnostic"
+    }
+    """
     # Delegate execution to the safe wrapper
     return await execute_tool_safely(
         tool_name='add_rule_exception_items',
@@ -167,8 +190,8 @@ async def add_rule_exception_items(rule_id: str, items: List[Dict]) -> list[type
 async def get_rule_exceptions(rule_id: str) -> list[types.TextContent]:
     """Retrieves the exception items associated with a specific detection rule.
     
-    Note: The rule_id parameter must be the Kibana internal UUID (id) of the rule, 
-    not the user-facing rule_id. You can get the internal UUID by using the find_rules tool."""
+    The rule_id parameter should be the human-readable rule_id.
+    The tool will automatically look up the internal UUID needed for the API call."""
     # Delegate execution to the safe wrapper
     return await execute_tool_safely(
         tool_name='get_rule_exceptions',
