@@ -39,10 +39,20 @@ def configure_http_client():
     encoded_api_key = os.getenv("KIBANA_API_KEY")
     kibana_username = os.getenv("KIBANA_USERNAME")
     kibana_password = os.getenv("KIBANA_PASSWORD")
+    kibana_space = os.getenv("KIBANA_SPACE")
 
     if not kibana_url:
         logger.error("KIBANA_URL environment variable not set.")
         raise ValueError("KIBANA_URL environment variable not set.")
+    
+    # Modify the base URL to include the space if specified
+    if kibana_space:
+        # Remove trailing slash if present
+        if kibana_url.endswith('/'):
+            kibana_url = kibana_url[:-1]
+        # Add the space to the URL
+        kibana_url = f"{kibana_url}/s/{kibana_space}"
+        logger.info(f"Using Kibana space: {kibana_space}")
 
     headers = {"kbn-xsrf": "true", "Content-Type": "application/json"}
     auth_config = {}
