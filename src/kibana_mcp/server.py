@@ -39,10 +39,20 @@ def configure_http_client():
     encoded_api_key = os.getenv("KIBANA_API_KEY")
     kibana_username = os.getenv("KIBANA_USERNAME")
     kibana_password = os.getenv("KIBANA_PASSWORD")
+    kibana_space = os.getenv("KIBANA_SPACE")
 
     if not kibana_url:
         logger.error("KIBANA_URL environment variable not set.")
         raise ValueError("KIBANA_URL environment variable not set.")
+    
+    # Modify the base URL to include the space if specified
+    if kibana_space:
+        # Remove trailing slash if present
+        if kibana_url.endswith('/'):
+            kibana_url = kibana_url[:-1]
+        # Add the space to the URL
+        kibana_url = f"{kibana_url}/s/{kibana_space}"
+        logger.info(f"Using Kibana space: {kibana_space}")
 
     headers = {"kbn-xsrf": "true", "Content-Type": "application/json"}
     auth_config = {}
@@ -140,7 +150,33 @@ async def get_alerts(limit: int = 20,
 
 @mcp.tool()
 async def add_rule_exception_items(rule_id: str, items: List[Dict]) -> list[types.TextContent]:
-    """Adds one or more exception items to a specific detection rule's exception list."""
+    """Adds one or more exception items to a specific detection rule's exception list.
+    
+    The rule_id parameter should be the human-readable rule_id.
+    The tool will automatically look up the internal UUID needed for the API call.
+    
+    Each exception item should follow this structure:
+    {
+      "name": "Sample Exception List Item",
+      "tags": ["tag1", "tag2"],
+      "type": "simple",
+      "entries": [
+        {
+          "type": "exists",
+          "field": "some.field.path",
+          "operator": "included" or "excluded"
+        },
+        {
+          "type": "match_any",
+          "field": "another.field",
+          "value": ["value1", "value2"],
+          "operator": "included" or "excluded"
+        }
+      ],
+      "description": "Description of this exception item",
+      "namespace_type": "single" or "agnostic"
+    }
+    """
     # Delegate execution to the safe wrapper
     return await execute_tool_safely(
         tool_name='add_rule_exception_items',
@@ -152,7 +188,10 @@ async def add_rule_exception_items(rule_id: str, items: List[Dict]) -> list[type
 
 @mcp.tool()
 async def get_rule_exceptions(rule_id: str) -> list[types.TextContent]:
-    """Retrieves the exception items associated with a specific detection rule."""
+    """Retrieves the exception items associated with a specific detection rule.
+    
+    The rule_id parameter should be the human-readable rule_id.
+    The tool will automatically look up the internal UUID needed for the API call."""
     # Delegate execution to the safe wrapper
     return await execute_tool_safely(
         tool_name='get_rule_exceptions',
@@ -223,7 +262,23 @@ async def find_rules(
     page: Optional[int] = None,
     per_page: Optional[int] = None
 ) -> list[types.TextContent]:
-    """Finds detection rules, optionally filtering by KQL/Lucene, sorting, and paginating."""
+    """Finds detection rules, optionally filtering by KQL/Lucene, sorting, and paginating.
+    
+    Args:
+        filter: KQL or Lucene query string to filter rules. Field names must be prefixed with 
+               'alert.attributes.' (e.g., 'alert.attributes.name:"Rule Name"' to filter by name).
+               Example: 'alert.attributes.name:"Mock net10 alert"'
+        sort_field: Field to sort by. Valid values are: 'created_at', 'createdAt', 'enabled', 
+                   'execution_summary.last_execution.date', 
+                   'execution_summary.last_execution.metrics.execution_gap_duration_s',
+                   'execution_summary.last_execution.metrics.total_indexing_duration_ms', 
+                   'execution_summary.last_execution.metrics.total_search_duration_ms',
+                   'execution_summary.last_execution.status', 'name', 'risk_score', 
+                   'riskScore', 'severity', 'updated_at', or 'updatedAt'.
+        sort_order: Sort order. Valid values are 'asc' or 'desc'.
+        page: Page number (minimum 1, default 1).
+        per_page: Rules per page (minimum 0, default 20).
+    """
     return await execute_tool_safely(
         tool_name='find_rules',
         tool_impl_func=_call_find_rules,

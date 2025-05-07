@@ -109,4 +109,4 @@ async def _call_associate_shared_exception_list(
     except Exception as e:
         result_text += f"\\nUnexpected error associating shared exception list with rule: {str(e)}"
         
-    return result_text 
+    return result_text
