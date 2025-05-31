@@ -61,7 +61,7 @@ uv run kibana-mcp
 ### Test Environment
 ```bash
 # Start local Kibana/Elasticsearch with test data
-pip install -r requirements-dev.txt
+pip install -r testing/requirements-dev.txt
 ./testing/quickstart-test-env.sh
 
 # Access at http://localhost:5601 (elastic/elastic)
