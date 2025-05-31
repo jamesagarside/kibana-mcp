@@ -21,10 +21,13 @@ Add to your MCP client config (Claude Desktop, Cursor, etc.):
 First, set your credentials:
 ```bash
 export KIBANA_URL="https://your-kibana.example.com:5601"
+
+# Option 1: API Key (recommended)
 export KIBANA_API_KEY="your_base64_api_key"
-# OR use username/password:
-# export KIBANA_USERNAME="username"
-# export KIBANA_PASSWORD="password"
+
+# Option 2: Username/Password
+# export KIBANA_USERNAME="your_username"
+# export KIBANA_PASSWORD="your_password"
 ```
 
 Then add to your MCP config:
@@ -39,7 +42,21 @@ Then add to your MCP config:
 }
 ```
 
+For username/password, use:
+```json
+{
+  "mcpServers": {
+    "kibana-mcp": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "KIBANA_URL", "-e", "KIBANA_USERNAME", "-e", "KIBANA_PASSWORD", "kibana-mcp"]
+    }
+  }
+}
+```
+
 **Option B: Direct Credentials (Easier for Claude Desktop)**
+
+Using API Key:
 ```json
 {
   "mcpServers": {
@@ -49,6 +66,24 @@ Then add to your MCP config:
         "run", "-i", "--rm",
         "-e", "KIBANA_URL=https://your-kibana.example.com:5601",
         "-e", "KIBANA_API_KEY=your_base64_api_key",
+        "kibana-mcp"
+      ]
+    }
+  }
+}
+```
+
+Using Username/Password:
+```json
+{
+  "mcpServers": {
+    "kibana-mcp": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "KIBANA_URL=https://your-kibana.example.com:5601",
+        "-e", "KIBANA_USERNAME=your_username",
+        "-e", "KIBANA_PASSWORD=your_password",
         "kibana-mcp"
       ]
     }
@@ -90,12 +125,3 @@ pip install -r testing/requirements-dev.txt
 # Access at http://localhost:5601 (elastic/elastic)
 ```
 
-## Configuration
-
-**MCP Client Locations:**
-- Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Cursor: `~/.cursor/mcp.json`
-
-**Authentication:**
-- API Key (recommended): Generate in Kibana → Stack Management → API Keys
-- Username/Password: Basic auth credentials
