@@ -6,19 +6,20 @@ Model Context Protocol (MCP) server for Kibana Security functions - manage alert
 
 ## Quick Start
 
-### 1. Set Environment Variables
+### 1. Clone and Build
+```bash
+git clone https://github.com/ggilligan12/kibana-mcp.git
+cd kibana-mcp
+docker build -t kibana-mcp .
+```
+
+### 2. Set Environment Variables
 ```bash
 export KIBANA_URL="https://your-kibana.example.com:5601"
 export KIBANA_API_KEY="your_base64_api_key"
 # OR use username/password:
 # export KIBANA_USERNAME="username"
 # export KIBANA_PASSWORD="password"
-```
-
-### 2. Run with Docker
-```bash
-docker build -t kibana-mcp .
-docker run -i --rm -e KIBANA_URL -e KIBANA_API_KEY kibana-mcp
 ```
 
 ### 3. Add to MCP Client
