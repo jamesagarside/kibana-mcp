@@ -13,7 +13,12 @@ cd kibana-mcp
 docker build -t kibana-mcp .
 ```
 
-### 2. Set Environment Variables
+### 2. Configure MCP Client
+Add to your MCP client config (Claude Desktop, Cursor, etc.):
+
+**Option A: Using Environment Variables (Recommended)**
+
+First, set your credentials:
 ```bash
 export KIBANA_URL="https://your-kibana.example.com:5601"
 export KIBANA_API_KEY="your_base64_api_key"
@@ -22,10 +27,7 @@ export KIBANA_API_KEY="your_base64_api_key"
 # export KIBANA_PASSWORD="password"
 ```
 
-### 3. Add to MCP Client
-Add to your MCP client config (Claude Desktop, Cursor, etc.):
-
-**Option A: Using Environment Variables (Recommended)**
+Then add to your MCP config:
 ```json
 {
   "mcpServers": {
