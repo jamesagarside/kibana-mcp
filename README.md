@@ -24,6 +24,8 @@ export KIBANA_API_KEY="your_base64_api_key"
 
 ### 3. Add to MCP Client
 Add to your MCP client config (Claude Desktop, Cursor, etc.):
+
+**Option A: Using Environment Variables (Recommended)**
 ```json
 {
   "mcpServers": {
@@ -34,6 +36,25 @@ Add to your MCP client config (Claude Desktop, Cursor, etc.):
   }
 }
 ```
+
+**Option B: Direct Credentials (Easier for Claude Desktop)**
+```json
+{
+  "mcpServers": {
+    "kibana-mcp": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "KIBANA_URL=https://your-kibana.example.com:5601",
+        "-e", "KIBANA_API_KEY=your_base64_api_key",
+        "kibana-mcp"
+      ]
+    }
+  }
+}
+```
+
+*Note: Option B is less secure but more convenient for tools like Claude Desktop where environment variables are harder to manage.*
 
 ## Available Tools
 
