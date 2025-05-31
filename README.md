@@ -1,5 +1,7 @@
 # Kibana MCP Server
 
+![Kibana MCP Demo](faster-server-demo.gif)
+
 Model Context Protocol (MCP) server for Kibana Security functions - manage alerts, rules, and exceptions via AI assistants.
 
 ## Quick Start
