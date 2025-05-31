@@ -36,7 +36,7 @@ Then add to your MCP config:
   "mcpServers": {
     "kibana-mcp": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "-e", "KIBANA_URL", "-e", "KIBANA_API_KEY", "kibana-mcp"]
+      "args": ["run", "-i", "--rm", "--network", "host", "-e", "KIBANA_URL", "-e", "KIBANA_API_KEY", "kibana-mcp"]
     }
   }
 }
@@ -48,7 +48,7 @@ For username/password, use:
   "mcpServers": {
     "kibana-mcp": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "-e", "KIBANA_URL", "-e", "KIBANA_USERNAME", "-e", "KIBANA_PASSWORD", "kibana-mcp"]
+      "args": ["run", "-i", "--rm", "--network", "host", "-e", "KIBANA_URL", "-e", "KIBANA_USERNAME", "-e", "KIBANA_PASSWORD", "kibana-mcp"]
     }
   }
 }
@@ -63,7 +63,7 @@ Using API Key:
     "kibana-mcp": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm",
+        "run", "-i", "--rm", "--network", "host",
         "-e", "KIBANA_URL=https://your-kibana.example.com:5601",
         "-e", "KIBANA_API_KEY=your_base64_api_key",
         "kibana-mcp"
@@ -80,7 +80,7 @@ Using Username/Password:
     "kibana-mcp": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm",
+        "run", "-i", "--rm", "--network", "host",
         "-e", "KIBANA_URL=https://your-kibana.example.com:5601",
         "-e", "KIBANA_USERNAME=your_username",
         "-e", "KIBANA_PASSWORD=your_password",
