@@ -63,6 +63,36 @@ The server prioritizes `KIBANA_API_KEY` if it is set. If it's not set, it will a
 
 ## Quickstart: Running the Server
 
+### Option 1: Docker (Recommended)
+
+The easiest way to run the Kibana MCP server is using Docker:
+
+1.  Build the Docker image:
+    ```bash
+    docker build -t kibana-mcp .
+    ```
+
+2.  Set your Kibana credentials as environment variables:
+    ```bash
+    export KIBANA_URL="<your_kibana_url>"
+    export KIBANA_API_KEY="<your_api_key>"
+    # OR for username/password auth:
+    # export KIBANA_USERNAME="<your_username>"
+    # export KIBANA_PASSWORD="<your_password>"
+    ```
+
+3.  Run the Docker container (environment variables will be passed through):
+    ```bash
+    docker run -i --rm \
+      -e KIBANA_URL \
+      -e KIBANA_API_KEY \
+      kibana-mcp
+    ```
+
+### Option 2: Local Development
+
+For local development or if you prefer not to use Docker:
+
 1.  Set the required environment variables (`KIBANA_URL` and authentication variables).
 
     *   **Using API Key:**
@@ -97,41 +127,65 @@ You can configure MCP clients like Cursor or Claude Desktop to use this server.
 
 Add the following server configuration under the `mcpServers` key, replacing `/path/to/kibana-mcp` with the actual absolute path to your project root. Choose **one** authentication method (`KIBANA_API_KEY` or `KIBANA_USERNAME`/`KIBANA_PASSWORD`) within the command arguments.
 
-**Recommended Configuration (using `/usr/bin/env`):**
+**Option A: Using Docker (Recommended):**
 
-Some client applications may not reliably pass environment variables defined in their configuration's `env` block. Using `/usr/bin/env` directly ensures the variables are set for the server process.
+First, set your Kibana credentials as environment variables:
+```bash
+export KIBANA_URL="<your_kibana_url>"
+export KIBANA_API_KEY="<your_base64_encoded_api_key>"
+# OR for username/password auth:
+# export KIBANA_USERNAME="<your_username>"
+# export KIBANA_PASSWORD="<your_password>"
+```
 
+Then configure your MCP client:
 ```json
 {
   "mcpServers": {
-    "kibana-mcp": { // You can choose any name for the client to display
-      "command": "/usr/bin/env", // Use env command for reliability
+    "kibana-mcp": {
+      "command": "docker",
       "args": [
-        // Set required environment variables here
-        "KIBANA_URL=<your_kibana_url>",
-
-        // Option 1: API Key (Recommended)
-        "KIBANA_API_KEY=<your_base64_encoded_api_key>",
-
-        // Option 2: Username/Password (Mutually exclusive with API Key)
-        // "KIBANA_USERNAME=<your_kibana_username>",
-        // "KIBANA_PASSWORD=<your_kibana_password>",
-
-        // Command to run the server (using absolute paths)
-        "/path/to/your/virtualenv/bin/python", // e.g., /Users/me/kibana-mcp/.venv/bin/python
-        "/path/to/kibana-mcp/src/kibana_mcp/server.py" // Absolute path to server script
-      ],
-      "options": {
-          "cwd": "/path/to/kibana-mcp" // Set correct working directory
-          // No "env" block needed here when using /usr/bin/env in command/args
-      }
+        "run", "-i", "--rm",
+        "-e", "KIBANA_URL",
+        "-e", "KIBANA_API_KEY",
+        "kibana-mcp:latest"
+      ]
     }
-    // Add other servers here if needed
   }
 }
 ```
 
-*(Note: Replace placeholders like `<your_kibana_url>`, `<your_base64_encoded_api_key>`, and the python/script paths with your actual values. Storing secrets directly in the config file is generally discouraged for production use. Consider more secure ways to manage environment variables if needed.)*
+Note: Docker will automatically pass through the environment variables when using `-e VARIABLE_NAME` without a value.
+
+**Option B: Using Local Installation (Development):**
+
+For local development, first set your environment variables:
+```bash
+export KIBANA_URL="<your_kibana_url>"
+export KIBANA_API_KEY="<your_base64_encoded_api_key>"
+# OR for username/password auth:
+# export KIBANA_USERNAME="<your_username>"
+# export KIBANA_PASSWORD="<your_password>"
+```
+
+Then configure your MCP client:
+```json
+{
+  "mcpServers": {
+    "kibana-mcp": {
+      "command": "/path/to/your/virtualenv/bin/python",
+      "args": [
+        "/path/to/kibana-mcp/src/kibana_mcp/server.py"
+      ],
+      "options": {
+        "cwd": "/path/to/kibana-mcp"
+      }
+    }
+  }
+}
+```
+
+*(Note: Replace the paths with your actual virtualenv and project paths. Environment variables will be inherited from your shell.)*
 
 **Alternative Configuration (Standard `env` block - might not work reliably):**
 

@@ -9,3 +9,7 @@ wheels/
 # Virtual environments
 .venv
 venv312/
+
+# Local configuration files
+.env
+.mcp.json
