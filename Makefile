@@ -33,8 +33,8 @@ load_venv:
 
 run_coverage_test: load_venv
 	@echo "Running coverage tests..."
-	@export PYTHONPATH=./src pytest
-	@coverage run -m pytest
+	@export PYTHONPATH=./src && pytest
+	@export PYTHONPATH=./src && coverage run -m pytest
 	@coverage report -m
 	@coverage html
 
