@@ -13,3 +13,8 @@ venv312/
 # Local configuration files
 .env
 .mcp.json
+.coverage
+uv.lock
+htmlcov/
+.pytest_cache/
+.backup

@@ -31,11 +31,18 @@ load_venv:
 	@echo "Installing dependencies..."
 	@pip install -r ./testing/requirements-dev.txt
 
+run_coverage_test: load_venv
+	@echo "Running coverage tests..."
+	@export PYTHONPATH=./src pytest
+	@coverage run -m pytest
+	@coverage report -m
+	@coverage html
 
-test: load_venv
-	@echo "Running tests..."
-	export PYTHONPATH=src && pytest
-	PYTHONPATH=./src pytest -xvs testing/tools/test_all.py
+run_pytest: load_venv
+	@echo "Running pytest..."
+	@PYTHONPATH=./src pytest -xvs testing/tools/test_all.py
+
+test:	run_pytest run_coverage_test
 
 build: 
 	@echo "Building the project..."
