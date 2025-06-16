@@ -1,7 +1,7 @@
 import asyncio
 import os
 import httpx
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 import logging
 
 # Import FastMCP and types
@@ -10,27 +10,54 @@ import mcp.types as types
 
 # Import handler implementations using absolute paths
 from kibana_mcp.tools import (
-    _call_tag_alert, 
-    _call_adjust_alert_status, 
-    _call_get_alerts, 
-    _call_get_rule_exceptions, 
-    _call_add_rule_exception_items, 
+    # Alert tools
+    _call_tag_alert,
+    _call_adjust_alert_status,
+    _call_get_alerts,
+
+    # Exception tools
+    _call_get_rule_exceptions,
+    _call_add_rule_exception_items,
     _call_create_exception_list,
     _call_associate_shared_exception_list,
+
+    # Rule tools
     _call_find_rules,
+    _call_get_rule,
+    _call_delete_rule,
+    _call_update_rule_status,
+    _call_get_prepackaged_rules_status,
+    _call_install_prepackaged_rules,
+
+    # Endpoint tools
+    _call_isolate_endpoint,
+    _call_unisolate_endpoint,
+    _call_run_command_on_endpoint,
+    _call_get_response_actions,
+    _call_get_response_action_details,
+    _call_get_response_action_status,
+    _call_kill_process,
+    _call_suspend_process,
+    _call_scan_endpoint,
+    _call_get_file_info,
+    _call_download_file,
+
+    # Utils
     execute_tool_safely
 )
 from kibana_mcp.resources import handle_read_resource
 from kibana_mcp.prompts import handle_get_prompt
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("kibana-mcp")
 
 # --- Global MCP Instance and HTTP Client ---
 logger.info("Initializing Kibana MCP Server (FastMCP)...")
 mcp = FastMCP("kibana-mcp")
 http_client: httpx.AsyncClient | None = None
+
 
 def configure_http_client():
     """Configure the global httpx client using environment variables."""
@@ -44,7 +71,7 @@ def configure_http_client():
     if not kibana_url:
         logger.error("KIBANA_URL environment variable not set.")
         raise ValueError("KIBANA_URL environment variable not set.")
-    
+
     # Modify the base URL to include the space if specified
     if kibana_space:
         # Remove trailing slash if present
@@ -60,21 +87,26 @@ def configure_http_client():
 
     if encoded_api_key:
         logger.info("Configuring authentication using API Key.")
-        auth_header = encoded_api_key if encoded_api_key.strip().startswith("ApiKey ") else f"ApiKey {encoded_api_key.strip()}"
+        auth_header = encoded_api_key if encoded_api_key.strip().startswith(
+            "ApiKey ") else f"ApiKey {encoded_api_key.strip()}"
         headers["Authorization"] = auth_header
         auth_method_used = "API Key"
     elif kibana_username and kibana_password:
-        logger.info(f"Configuring authentication using Basic auth for user: {kibana_username}")
+        logger.info(
+            f"Configuring authentication using Basic auth for user: {kibana_username}")
         auth_config["auth"] = (kibana_username, kibana_password)
         auth_method_used = "Username/Password"
     else:
         logger.error("Kibana authentication not configured.")
-        raise ValueError("Kibana authentication not configured. Set KIBANA_API_KEY or both KIBANA_USERNAME/PASSWORD.")
+        raise ValueError(
+            "Kibana authentication not configured. Set KIBANA_API_KEY or both KIBANA_USERNAME/PASSWORD.")
 
-    logger.info(f"Creating HTTP client for Kibana at {kibana_url} using {auth_method_used}.")
+    logger.info(
+        f"Creating HTTP client for Kibana at {kibana_url} using {auth_method_used}.")
     http_client = httpx.AsyncClient(
         base_url=kibana_url, headers=headers, timeout=30.0, verify=False, **auth_config
     )
+
 
 async def close_http_client():
     """Close the global httpx client."""
@@ -89,11 +121,13 @@ async def close_http_client():
 
 # NOTE: list_* handlers might need specific registration if not automatic
 
+
 @mcp.resource("alert://{alert_id}")
 async def read_alert_resource(alert_id: str) -> str:
     uri = f"alert://{alert_id}"
     logger.info(f"Handling read_resource for URI: {uri}")
     return await handle_read_resource(uri=uri)
+
 
 @mcp.prompt("prompt://{prompt_name}")
 async def get_kibana_prompt(prompt_name: str) -> types.GetPromptResult:
@@ -103,6 +137,7 @@ async def get_kibana_prompt(prompt_name: str) -> types.GetPromptResult:
 
 # --- Individual Tool Handlers ---
 
+
 @mcp.tool()
 async def tag_alert(alert_id: str, tags: List[str]) -> list[types.TextContent]:
     """Adds one or more tags to a specific Kibana security alert signal."""
@@ -111,9 +146,10 @@ async def tag_alert(alert_id: str, tags: List[str]) -> list[types.TextContent]:
         tool_name='tag_alert',
         tool_impl_func=_call_tag_alert,
         http_client=http_client,
-        alert_id=alert_id, 
-        tags_to_add=tags # Pass correct arg name expected by _call_tag_alert
+        alert_id=alert_id,
+        tags_to_add=tags  # Pass correct arg name expected by _call_tag_alert
     )
+
 
 @mcp.tool()
 async def adjust_alert_status(alert_id: str, new_status: str) -> list[types.TextContent]:
@@ -121,21 +157,23 @@ async def adjust_alert_status(alert_id: str, new_status: str) -> list[types.Text
     # Basic validation remains here as it's specific to this tool's input
     valid_statuses = ["open", "acknowledged", "closed"]
     if new_status not in valid_statuses:
-         err_msg = f"Invalid status '{new_status}'. Must be one of {valid_statuses}."
-         logger.warning(f"Tool 'adjust_alert_status' called with invalid status for alert {alert_id}: {new_status}")
-         return [types.TextContent(type="text", text=err_msg)]
+        err_msg = f"Invalid status '{new_status}'. Must be one of {valid_statuses}."
+        logger.warning(
+            f"Tool 'adjust_alert_status' called with invalid status for alert {alert_id}: {new_status}")
+        return [types.TextContent(type="text", text=err_msg)]
 
     # Delegate execution to the safe wrapper
     return await execute_tool_safely(
         tool_name='adjust_alert_status',
         tool_impl_func=_call_adjust_alert_status,
         http_client=http_client,
-        alert_id=alert_id, 
+        alert_id=alert_id,
         new_status=new_status
     )
 
+
 @mcp.tool()
-async def get_alerts(limit: int = 20, 
+async def get_alerts(limit: int = 20,
                      search_text: str = "*"
                      ) -> list[types.TextContent]:
     """Fetches recent Kibana security alert signals, optionally filtering by text and limiting quantity."""
@@ -144,17 +182,18 @@ async def get_alerts(limit: int = 20,
         tool_name='get_alerts',
         tool_impl_func=_call_get_alerts,
         http_client=http_client,
-        limit=limit, 
+        limit=limit,
         search_text=search_text
     )
+
 
 @mcp.tool()
 async def add_rule_exception_items(rule_id: str, items: List[Dict]) -> list[types.TextContent]:
     """Adds one or more exception items to a specific detection rule's exception list.
-    
+
     The rule_id parameter should be the human-readable rule_id.
     The tool will automatically look up the internal UUID needed for the API call.
-    
+
     Each exception item should follow this structure:
     {
       "name": "Sample Exception List Item",
@@ -186,10 +225,11 @@ async def add_rule_exception_items(rule_id: str, items: List[Dict]) -> list[type
         items=items
     )
 
+
 @mcp.tool()
 async def get_rule_exceptions(rule_id: str) -> list[types.TextContent]:
     """Retrieves the exception items associated with a specific detection rule.
-    
+
     The rule_id parameter should be the human-readable rule_id.
     The tool will automatically look up the internal UUID needed for the API call."""
     # Delegate execution to the safe wrapper
@@ -200,12 +240,13 @@ async def get_rule_exceptions(rule_id: str) -> list[types.TextContent]:
         rule_id=rule_id
     )
 
+
 @mcp.tool()
 async def create_exception_list(
     list_id: str,
     name: str,
     description: str,
-    type: str, # e.g., 'detection', 'endpoint'
+    type: str,  # e.g., 'detection', 'endpoint'
     namespace_type: str = 'single',
     tags: Optional[List[str]] = None,
     os_types: Optional[List[str]] = None
@@ -235,6 +276,7 @@ async def create_exception_list(
         os_types=os_types
     )
 
+
 @mcp.tool()
 async def associate_shared_exception_list(
     rule_id: str,
@@ -254,6 +296,7 @@ async def associate_shared_exception_list(
         exception_list_namespace=exception_list_namespace
     )
 
+
 @mcp.tool()
 async def find_rules(
     filter: Optional[str] = None,
@@ -263,7 +306,7 @@ async def find_rules(
     per_page: Optional[int] = None
 ) -> list[types.TextContent]:
     """Finds detection rules, optionally filtering by KQL/Lucene, sorting, and paginating.
-    
+
     Args:
         filter: KQL or Lucene query string to filter rules. Field names must be prefixed with 
                'alert.attributes.' (e.g., 'alert.attributes.name:"Rule Name"' to filter by name).
@@ -290,12 +333,320 @@ async def find_rules(
         per_page=per_page
     )
 
+
+@mcp.tool()
+async def get_rule(
+    rule_id: Optional[str] = None,
+    id: Optional[str] = None
+) -> list[types.TextContent]:
+    """Retrieves details of a specific detection rule.
+
+    Args:
+        rule_id: The human-readable rule_id to fetch.
+        id: The internal UUID of the rule to fetch.
+
+    Note: You must provide either rule_id OR id parameter (not both).
+    """
+    return await execute_tool_safely(
+        tool_name='get_rule',
+        tool_impl_func=_call_get_rule,
+        http_client=http_client,
+        rule_id=rule_id,
+        id=id
+    )
+
+
+@mcp.tool()
+async def delete_rule(
+    rule_id: Optional[str] = None,
+    id: Optional[str] = None
+) -> list[types.TextContent]:
+    """Deletes a specific detection rule.
+
+    Args:
+        rule_id: The human-readable rule_id to delete.
+        id: The internal UUID of the rule to delete.
+
+    Note: You must provide either rule_id OR id parameter (not both).
+    """
+    return await execute_tool_safely(
+        tool_name='delete_rule',
+        tool_impl_func=_call_delete_rule,
+        http_client=http_client,
+        rule_id=rule_id,
+        id=id
+    )
+
+
+@mcp.tool()
+async def update_rule_status(
+    rule_id: Optional[str] = None,
+    id: Optional[str] = None,
+    enabled: bool = True
+) -> list[types.TextContent]:
+    """Enables or disables a specific detection rule.
+
+    Args:
+        rule_id: The human-readable rule_id to update.
+        id: The internal UUID of the rule to update.
+        enabled: True to enable the rule, False to disable it (default: True).
+
+    Note: You must provide either rule_id OR id parameter (not both).
+    """
+    return await execute_tool_safely(
+        tool_name='update_rule_status',
+        tool_impl_func=_call_update_rule_status,
+        http_client=http_client,
+        rule_id=rule_id,
+        id=id,
+        enabled=enabled
+    )
+
+
+@mcp.tool()
+async def get_prepackaged_rules_status() -> list[types.TextContent]:
+    """Retrieves the status of Elastic's prepackaged detection rules and timelines.
+
+    Returns information about:
+    - Number of custom rules installed
+    - Number of prepackaged rules installed
+    - Number of prepackaged rules available but not installed
+    - Number of prepackaged rules that need updates
+    - Timeline installation statistics
+    """
+    return await execute_tool_safely(
+        tool_name='get_prepackaged_rules_status',
+        tool_impl_func=_call_get_prepackaged_rules_status,
+        http_client=http_client
+    )
+
+
+@mcp.tool()
+async def install_prepackaged_rules() -> list[types.TextContent]:
+    """Installs or updates Elastic's prepackaged detection rules and timelines.
+
+    This tool:
+    - Installs new prepackaged rules that aren't currently installed
+    - Updates existing prepackaged rules that have been modified by Elastic
+    - Installs new prepackaged timelines that aren't currently installed
+    - Updates existing prepackaged timelines that have been modified by Elastic
+
+    Returns a summary of installed and updated rules and timelines.
+    """
+    return await execute_tool_safely(
+        tool_name='install_prepackaged_rules',
+        tool_impl_func=_call_install_prepackaged_rules,
+        http_client=http_client
+    )
+
+# --- Endpoint Management Tools ---
+
+
+@mcp.tool()
+async def isolate_endpoint(
+    endpoint_ids: List[str],
+    agent_type: str = "endpoint",
+    comment: Optional[str] = None
+) -> list[types.TextContent]:
+    """Isolate one or more endpoints from the network."""
+    return await execute_tool_safely(
+        tool_name='isolate_endpoint',
+        tool_impl_func=_call_isolate_endpoint,
+        http_client=http_client,
+        endpoint_ids=endpoint_ids,
+        agent_type=agent_type,
+        comment=comment
+    )
+
+
+@mcp.tool()
+async def unisolate_endpoint(
+    endpoint_ids: List[str],
+    agent_type: str = "endpoint",
+    comment: Optional[str] = None
+) -> list[types.TextContent]:
+    """Release one or more endpoints from isolation."""
+    return await execute_tool_safely(
+        tool_name='unisolate_endpoint',
+        tool_impl_func=_call_unisolate_endpoint,
+        http_client=http_client,
+        endpoint_ids=endpoint_ids,
+        agent_type=agent_type,
+        comment=comment
+    )
+
+
+@mcp.tool()
+async def run_command_on_endpoint(
+    endpoint_ids: List[str],
+    command: str,
+    agent_type: str = "endpoint",
+    comment: Optional[str] = None,
+    parameters: Optional[Dict[str, Any]] = None
+) -> list[types.TextContent]:
+    """Run a shell command on one or more endpoints."""
+    return await execute_tool_safely(
+        tool_name='run_command_on_endpoint',
+        tool_impl_func=_call_run_command_on_endpoint,
+        http_client=http_client,
+        endpoint_ids=endpoint_ids,
+        command=command,
+        agent_type=agent_type,
+        comment=comment,
+        parameters=parameters
+    )
+
+
+@mcp.tool()
+async def get_response_actions(
+    page: int = 1,
+    page_size: int = 10,
+    agent_ids: Optional[List[str]] = None,
+    agent_types: Optional[str] = None,
+    commands: Optional[List[str]] = None,
+    types: Optional[List[str]] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    user_ids: Optional[List[str]] = None,
+    with_outputs: Optional[List[str]] = None
+) -> list[types.TextContent]:
+    """Get a list of all response actions from Elastic Defend endpoints."""
+    return await execute_tool_safely(
+        tool_name='get_response_actions',
+        tool_impl_func=_call_get_response_actions,
+        http_client=http_client,
+        page=page,
+        page_size=page_size,
+        agent_ids=agent_ids,
+        agent_types=agent_types,
+        commands=commands,
+        types=types,
+        start_date=start_date,
+        end_date=end_date,
+        user_ids=user_ids,
+        with_outputs=with_outputs
+    )
+
+
+@mcp.tool()
+async def get_response_action_details(
+    action_id: str
+) -> list[types.TextContent]:
+    """Get details of a response action by action ID."""
+    return await execute_tool_safely(
+        tool_name='get_response_action_details',
+        tool_impl_func=_call_get_response_action_details,
+        http_client=http_client,
+        action_id=action_id
+    )
+
+
+@mcp.tool()
+async def get_response_action_status(
+    query: Dict[str, Any]
+) -> list[types.TextContent]:
+    """Get the status of response actions for specified agent IDs."""
+    return await execute_tool_safely(
+        tool_name='get_response_action_status',
+        tool_impl_func=_call_get_response_action_status,
+        http_client=http_client,
+        query=query
+    )
+
+
+@mcp.tool()
+async def kill_process(
+    endpoint_ids: List[str],
+    parameters: Dict[str, Any],
+    agent_type: str = "endpoint",
+    comment: Optional[str] = None
+) -> list[types.TextContent]:
+    """Terminate a running process on an endpoint."""
+    return await execute_tool_safely(
+        tool_name='kill_process',
+        tool_impl_func=_call_kill_process,
+        http_client=http_client,
+        endpoint_ids=endpoint_ids,
+        parameters=parameters,
+        agent_type=agent_type,
+        comment=comment
+    )
+
+
+@mcp.tool()
+async def suspend_process(
+    endpoint_ids: List[str],
+    parameters: Dict[str, Any],
+    agent_type: str = "endpoint",
+    comment: Optional[str] = None
+) -> list[types.TextContent]:
+    """Suspend a running process on an endpoint."""
+    return await execute_tool_safely(
+        tool_name='suspend_process',
+        tool_impl_func=_call_suspend_process,
+        http_client=http_client,
+        endpoint_ids=endpoint_ids,
+        parameters=parameters,
+        agent_type=agent_type,
+        comment=comment
+    )
+
+
+@mcp.tool()
+async def scan_endpoint(
+    endpoint_ids: List[str],
+    parameters: Dict[str, Any],
+    agent_type: str = "endpoint",
+    comment: Optional[str] = None
+) -> list[types.TextContent]:
+    """Scan a file or directory on an endpoint for malware."""
+    return await execute_tool_safely(
+        tool_name='scan_endpoint',
+        tool_impl_func=_call_scan_endpoint,
+        http_client=http_client,
+        endpoint_ids=endpoint_ids,
+        parameters=parameters,
+        agent_type=agent_type,
+        comment=comment
+    )
+
+
+@mcp.tool()
+async def get_file_info(
+    action_id: str,
+    file_id: str
+) -> list[types.TextContent]:
+    """Get information for a file retrieved by a response action."""
+    return await execute_tool_safely(
+        tool_name='get_file_info',
+        tool_impl_func=_call_get_file_info,
+        http_client=http_client,
+        action_id=action_id,
+        file_id=file_id
+    )
+
+
+@mcp.tool()
+async def download_file(
+    action_id: str,
+    file_id: str
+) -> list[types.TextContent]:
+    """Download a file from an endpoint."""
+    return await execute_tool_safely(
+        tool_name='download_file',
+        tool_impl_func=_call_download_file,
+        http_client=http_client,
+        action_id=action_id,
+        file_id=file_id
+    )
+
+
 def run_server():
     """Configure client, run the MCP server loop, and handle cleanup."""
-    global http_client # Need global to ensure cleanup happens
-    http_client = None # Ensure it's None initially
+    global http_client  # Need global to ensure cleanup happens
+    http_client = None  # Ensure it's None initially
     try:
-        configure_http_client() # Configure global client
+        configure_http_client()  # Configure global client
         logger.info(f"Starting FastMCP server run loop...")
         # Call the synchronous run method, which handles the event loop
         mcp.run()
@@ -311,10 +662,12 @@ def run_server():
                 asyncio.run(close_http_client())
             except RuntimeError as re:
                 # Handle case where loop might already be closed or another issue
-                logger.error(f"Error closing HTTP client in finally block: {re}", exc_info=True)
+                logger.error(
+                    f"Error closing HTTP client in finally block: {re}", exc_info=True)
         else:
-             logger.info("HTTP client was not initialized or already closed.")
+            logger.info("HTTP client was not initialized or already closed.")
+
 
 # Allows running the server directly using `python -m kibana_mcp` or `uv run kibana-mcp`
 if __name__ == "__main__":
-    run_server() # Call the synchronous function directly
+    run_server()  # Call the synchronous function directly
