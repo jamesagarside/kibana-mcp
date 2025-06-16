@@ -18,3 +18,4 @@ uv.lock
 htmlcov/
 .pytest_cache/
 .backup
+.actrc
