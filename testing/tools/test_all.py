@@ -8,3 +8,4 @@ from .alerts.test_alert_tools import *
 from .rules.test_rule_tools import *
 from .exceptions.test_exception_tools import *
 from .endpoint.test_endpoint_tools import *
+from .saved_objects.test_saved_objects import *

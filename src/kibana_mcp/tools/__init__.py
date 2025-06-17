@@ -17,6 +17,16 @@ from .exceptions.add_rule_exception_items import _call_add_rule_exception_items
 from .exceptions.create_exception_list import _call_create_exception_list
 from .exceptions.associate_shared_exception_list import _call_associate_shared_exception_list
 
+# Import saved objects tools
+from .saved_objects.find_objects import _call_find_objects
+from .saved_objects.get_object import _call_get_object
+from .saved_objects.bulk_get_objects import _call_bulk_get_objects
+from .saved_objects.create_object import _call_create_object
+from .saved_objects.update_object import _call_update_object
+from .saved_objects.delete_object import _call_delete_object
+from .saved_objects.export_objects import _call_export_objects
+from .saved_objects.import_objects import _call_import_objects
+
 # Import endpoint tools
 from .endpoint.isolate_endpoint import _call_isolate_endpoint
 from .endpoint.unisolate_endpoint import _call_unisolate_endpoint
@@ -52,6 +62,16 @@ __all__ = [
     '_call_add_rule_exception_items',
     '_call_create_exception_list',
     '_call_associate_shared_exception_list',
+
+    # Saved Objects tools
+    '_call_find_objects',
+    '_call_get_object',
+    '_call_bulk_get_objects',
+    '_call_create_object',
+    '_call_update_object',
+    '_call_delete_object',
+    '_call_export_objects',
+    '_call_import_objects',
 
     # Endpoint tools
     '_call_isolate_endpoint',

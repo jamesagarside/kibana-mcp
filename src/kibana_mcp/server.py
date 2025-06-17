@@ -21,6 +21,16 @@ from kibana_mcp.tools import (
     _call_create_exception_list,
     _call_associate_shared_exception_list,
 
+    # Saved Objects tools
+    _call_find_objects,
+    _call_get_object,
+    _call_bulk_get_objects,
+    _call_create_object,
+    _call_update_object,
+    _call_delete_object,
+    _call_export_objects,
+    _call_import_objects,
+
     # Rule tools
     _call_find_rules,
     _call_get_rule,
@@ -438,6 +448,239 @@ async def install_prepackaged_rules() -> list[types.TextContent]:
         tool_impl_func=_call_install_prepackaged_rules,
         http_client=http_client
     )
+
+# --- Saved Objects Management Tools ---
+
+
+@mcp.tool()
+async def find_objects(
+    type: List[str],
+    search_fields: Optional[List[str]] = None,
+    search: Optional[str] = None,
+    default_search_operator: Optional[str] = None,
+    page: Optional[int] = None,
+    per_page: Optional[int] = None,
+    sort_field: Optional[str] = None,
+    sort_order: Optional[str] = None,
+    fields: Optional[List[str]] = None,
+    filter: Optional[str] = None,
+    has_reference: Optional[Dict[str, str]] = None
+) -> list[types.TextContent]:
+    """Find saved objects by type and other criteria.
+
+    Note: Results are paginated by default (10 per page) to avoid exceeding conversation limits. 
+    The total number of returned objects is limited to 100 to prevent excessive response lengths.
+    Use the page parameter to navigate through results when working with large result sets.
+
+    Args:
+        type: A list of saved object types to search for.
+        search_fields: A list of fields to search within.
+        search: A search term to match against the search_fields.
+        default_search_operator: Either 'AND' or 'OR' for how to combine search terms. Default is 'OR'.
+        page: The page number to return. Defaults to 1.
+        per_page: The number of objects to return per page. Defaults to 10.
+        sort_field: The field to sort on.
+        sort_order: Either 'asc' or 'desc' for the sort direction.
+        fields: A list of fields to return in the response.
+        filter: A KQL expression to filter on.
+        has_reference: Filter by reference fields and values.
+    """
+    return await execute_tool_safely(
+        tool_name='find_objects',
+        tool_impl_func=_call_find_objects,
+        http_client=http_client,
+        type=type,
+        search_fields=search_fields,
+        search=search,
+        default_search_operator=default_search_operator,
+        page=page,
+        per_page=per_page,
+        sort_field=sort_field,
+        sort_order=sort_order,
+        fields=fields,
+        filter=filter,
+        has_reference=has_reference
+    )
+
+
+@mcp.tool()
+async def get_object(
+    type: str,
+    id: str,
+    include_references: Optional[bool] = None,
+    fields: Optional[List[str]] = None
+) -> list[types.TextContent]:
+    """Get a saved object by type and ID.
+
+    Args:
+        type: The type of saved object to retrieve.
+        id: The ID of the saved object.
+        include_references: Whether to include references in the response.
+        fields: A list of fields to return in the response.
+    """
+    return await execute_tool_safely(
+        tool_name='get_object',
+        tool_impl_func=_call_get_object,
+        http_client=http_client,
+        type=type,
+        id=id,
+        include_references=include_references,
+        fields=fields
+    )
+
+
+@mcp.tool()
+async def bulk_get_objects(
+    objects: List[Dict[str, str]],
+    include_references: Optional[bool] = None,
+    fields: Optional[List[str]] = None
+) -> list[types.TextContent]:
+    """Get multiple saved objects in a single request.
+
+    Args:
+        objects: A list of objects with 'type' and 'id' properties.
+        include_references: Whether to include references in the response.
+        fields: A list of fields to return in the response.
+    """
+    return await execute_tool_safely(
+        tool_name='bulk_get_objects',
+        tool_impl_func=_call_bulk_get_objects,
+        http_client=http_client,
+        objects=objects,
+        include_references=include_references,
+        fields=fields
+    )
+
+
+@mcp.tool()
+async def create_object(
+    type: str,
+    attributes: Dict[str, Any],
+    id: Optional[str] = None,
+    overwrite: Optional[bool] = None,
+    references: Optional[list] = None
+) -> list[types.TextContent]:
+    """Create a new saved object.
+
+    Args:
+        type: The type of saved object to create.
+        attributes: The attributes of the saved object.
+        id: Optional ID to assign to the saved object. If not provided, one will be generated.
+        overwrite: Whether to overwrite an existing object with the same ID.
+        references: A list of references to other saved objects.
+    """
+    return await execute_tool_safely(
+        tool_name='create_object',
+        tool_impl_func=_call_create_object,
+        http_client=http_client,
+        type=type,
+        attributes=attributes,
+        id=id,
+        overwrite=overwrite,
+        references=references
+    )
+
+
+@mcp.tool()
+async def update_object(
+    type: str,
+    id: str,
+    attributes: Dict[str, Any],
+    version: Optional[str] = None,
+    references: Optional[list] = None
+) -> list[types.TextContent]:
+    """Update an existing saved object.
+
+    Args:
+        type: The type of saved object to update.
+        id: The ID of the saved object.
+        attributes: The attributes to update.
+        version: The version of the saved object to update (for optimistic concurrency control).
+        references: A list of references to other saved objects.
+    """
+    return await execute_tool_safely(
+        tool_name='update_object',
+        tool_impl_func=_call_update_object,
+        http_client=http_client,
+        type=type,
+        id=id,
+        attributes=attributes,
+        version=version,
+        references=references
+    )
+
+
+@mcp.tool()
+async def delete_object(
+    type: str,
+    id: str,
+    force: Optional[bool] = None
+) -> list[types.TextContent]:
+    """Delete a saved object.
+
+    Args:
+        type: The type of saved object to delete.
+        id: The ID of the saved object.
+        force: Whether to force deletion of the object even if it would break references.
+    """
+    return await execute_tool_safely(
+        tool_name='delete_object',
+        tool_impl_func=_call_delete_object,
+        http_client=http_client,
+        type=type,
+        id=id,
+        force=force
+    )
+
+
+@mcp.tool()
+async def export_objects(
+    objects: List[Dict[str, Any]],
+    exclude_export_details: Optional[bool] = None,
+    include_references: Optional[bool] = None,
+    include_namespace: Optional[bool] = None
+) -> list[types.TextContent]:
+    """Export saved objects.
+
+    Args:
+        objects: A list of objects with 'type' and 'id' properties to export.
+        exclude_export_details: Whether to exclude export details from the response.
+        include_references: Whether to include referenced objects in the export.
+        include_namespace: Whether to include the namespace in the exported objects.
+    """
+    return await execute_tool_safely(
+        tool_name='export_objects',
+        tool_impl_func=_call_export_objects,
+        http_client=http_client,
+        objects=objects,
+        exclude_export_details=exclude_export_details,
+        include_references=include_references,
+        include_namespace=include_namespace
+    )
+
+
+@mcp.tool()
+async def import_objects(
+    objects_ndjson: str,
+    create_new_copies: Optional[bool] = None,
+    overwrite: Optional[bool] = None
+) -> list[types.TextContent]:
+    """Import saved objects.
+
+    Args:
+        objects_ndjson: A string containing the objects in NDJSON format.
+        create_new_copies: Whether to create new copies of the objects with new IDs.
+        overwrite: Whether to overwrite existing objects with the same ID.
+    """
+    return await execute_tool_safely(
+        tool_name='import_objects',
+        tool_impl_func=_call_import_objects,
+        http_client=http_client,
+        objects_ndjson=objects_ndjson,
+        create_new_copies=create_new_copies,
+        overwrite=overwrite
+    )
+
 
 # --- Endpoint Management Tools ---
 
