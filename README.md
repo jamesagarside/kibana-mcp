@@ -2,7 +2,7 @@
 
 ![Kibana MCP Demo](faster-server-demo.gif)
 
-Model Context Protocol (MCP) server for Kibana Security - manage alerts, rules, and exceptions via AI assistants.
+Model Context Protocol (MCP) server for Kibana Security - manage alerts, rules, exceptions, saved objects, and endpoints via AI assistants.
 
 ## Quick Start
 
@@ -161,6 +161,17 @@ _Note: Option B is less secure but more convenient for tools like Claude Desktop
 - **`create_exception_list`** - Create new exception lists
 - **`associate_shared_exception_list`** - Link exception lists to rules
 
+### Saved Objects Management
+
+- **`find_objects`** - Search for saved objects (dashboards, visualizations, etc.)
+- **`get_object`** - Retrieve details of a specific saved object
+- **`bulk_get_objects`** - Get multiple saved objects in a single request
+- **`create_object`** - Create a new saved object
+- **`update_object`** - Update an existing saved object
+- **`delete_object`** - Delete a saved object
+- **`export_objects`** - Export saved objects to NDJSON format
+- **`import_objects`** - Import saved objects from NDJSON format
+
 ### Endpoint Management
 
 - **`isolate_endpoint`** - Isolate one or more endpoints from the network
@@ -174,12 +185,12 @@ _Note: Option B is less secure but more convenient for tools like Claude Desktop
 - **`scan_endpoint`** - Scan a file or directory on an endpoint for malware
 - **`get_file_info`** - Get information for a file retrieved by a response action
 - **`download_file`** - Download a file from an endpoint
-- **`create_exception_list`** - Create new exception lists
-- **`associate_shared_exception_list`** - Link exception lists to rules
-- **`get_prepackaged_rules_status`** - Check status of Elastic's prepackaged rules
-- **`install_prepackaged_rules`** - Install/update Elastic's prepackaged rules
 
 ## Local Development
+
+### Manual Development
+
+If you prefer not to use the Makefile, you can also run the commands manually:
 
 ```bash
 # Install dependencies
@@ -202,6 +213,7 @@ src/kibana_mcp/
 │   ├── rules/        # Tools for managing rules
 │   ├── exceptions/   # Tools for managing exception lists
 │   ├── endpoint/     # Tools for endpoint management and response actions
+│   ├── saved_objects/ # Tools for managing saved objects (dashboards, visualizations, etc.)
 │   └── utils/        # Utility functions
 ├── models/           # Pydantic models
 ├── server.py         # MCP server implementation
@@ -209,48 +221,143 @@ src/kibana_mcp/
 └── resources.py      # Resource handlers
 ```
 
-### Running Tests
+### Testing Code
+
+#### Complete Unit Tests and Coverage Test
 
 ```bash
-# Run all tests
-PYTHONPATH=/path/to/src pytest -xvs testing/tools/test_all.py
+make test
+```
+
+#### Granular Testing
+
+The recommended way to run tests is using the Makefile:
+
+```bash
+# Run all tests with coverage
+make test
+
+# Run pytest without coverage
+make run-pytest
+```
+
+If you need to test specific modules or test files, you can use pytest directly after activating the virtual environment:
+
+```bash
+# Activate the virtual environment created by the Makefile
+source .venv/bin/activate
 
 # Run tests for a specific category
-PYTHONPATH=/path/to/src pytest -xvs testing/tools/alerts/test_alert_tools.py
-PYTHONPATH=/path/to/src pytest -xvs testing/tools/rules/test_rule_tools.py
-PYTHONPATH=/path/to/src pytest -xvs testing/tools/exceptions/test_exception_tools.py
-PYTHONPATH=/path/to/src pytest -xvs testing/tools/endpoint/test_endpoint_tools.py
+PYTHONPATH=./src pytest -xvs testing/tools/alerts/test_alert_tools.py
+PYTHONPATH=./src pytest -xvs testing/tools/rules/test_rule_tools.py
+PYTHONPATH=./src pytest -xvs testing/tools/exceptions/test_exception_tools.py
+PYTHONPATH=./src pytest -xvs testing/tools/endpoint/test_endpoint_tools.py
+PYTHONPATH=./src pytest -xvs testing/tools/saved_objects/test_saved_objects.py
 ```
 
-### Test Environment
+### Testing MCP Server Locally
+
+The Makefile provides commands to help you set up a complete test environment with Elastic Stack using Docker. This environment will be bootstrapped with sample data for testing.
+
+### Setting Up the Test Environment
 
 ```bash
-# Start local Kibana/Elasticsearch with test data
-pip install -r testing/requirements-dev.txt
-./testing/quickstart-test-env.sh
+# Install required tools
+make install-elastic-package
 
-# Access at http://localhost:5601 (elastic/elastic)
+# Start the complete test environment (Elasticsearch, Kibana, Fleet Server and Agent)
+make start-test-env
+
+# Access Kibana at http://localhost:5601
+# Username: elastic
+# Password: elastic
+
+# When finished, stop the test environment
+make stop-test-env
 ```
 
-### Fleet and Endpoint Testing Environment
-
-To test the endpoint management tools with actual Elastic Fleet Server and Elastic Agent:
-
-```bash
-# Start the fully automated endpoint test environment (including Fleet and Agent)
-./testing/start-endpoint-test-env.sh
-
-# Or use the quick start script which also includes Fleet and Agent setup
-./testing/quickstart-test-env.sh
-
-# Check status
-docker compose -f testing/docker-compose.yml ps
-# or if you have docker-compose v1
-docker-compose -f testing/docker-compose.yml ps
-```
+Once your test environment is running, you can test the MCP server with any MCP-compatible LLM client (like Claude Desktop, Cursor, etc.).
 
 After setup, you can verify the connection by:
 
-1. Going to Kibana at http://localhost:5601
+1. Going to Kibana at https://localhost:5601 and login using the username: `elastic` and password: `changeme`
 2. Navigate to Management > Fleet
 3. Verify the Fleet Server and Agent are connected and healthy
+
+### Configure Claude Desktop
+
+```json
+{
+  "mcpServers": {
+    "kibana-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--network",
+        "host",
+        "-e",
+        "KIBANA_URL=https://localhost:5601",
+        "-e",
+        "KIBANA_USERNAME=elastic",
+        "-e",
+        "KIBANA_PASSWORD=changeme",
+        "kibana-mcp"
+      ]
+    }
+  }
+}
+```
+
+The project includes a comprehensive Makefile to help with common development tasks. You can view all available commands with:
+
+```bash
+make help
+```
+
+### Using the Makefile
+
+The Makefile includes the following main categories of commands:
+
+#### Development Commands
+
+```bash
+# Run the server locally in development mode (sets up local Kibana connection)
+make dev
+
+# Build the Docker image
+make build
+```
+
+#### Testing Commands
+
+```bash
+# Run all tests (pytest and coverage)
+make test
+
+# Run pytest only
+make run-pytest
+
+# Run tests with coverage reporting
+make run-coverage
+```
+
+#### Test Environment Commands
+
+```bash
+# Install the elastic-package tool
+make install-elastic-package
+
+# Start the complete test environment
+make start-test-env
+
+# Start only the Elastic Stack containers
+make start-elastic-stack
+
+# Configure the test environment
+make configure-test-env
+
+# Stop the test environment
+make stop-test-env
+```

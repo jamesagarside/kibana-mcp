@@ -19,3 +19,5 @@ htmlcov/
 .pytest_cache/
 .backup
 .actrc
+
+testing/elastic-package
