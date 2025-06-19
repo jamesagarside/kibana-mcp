@@ -1,9 +1,7 @@
 name: Test Workflow Locally
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_dispatch: # Only allow manual triggering
 
 jobs:
   test:
