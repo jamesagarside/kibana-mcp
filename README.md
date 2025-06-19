@@ -6,17 +6,7 @@ Model Context Protocol (MCP) server for Kibana Security - manage alerts, rules, 
 
 ## Quick Start
 
-### 1. Clone and Build
-
-```bash
-git clone https://github.com/ggilligan12/kibana-mcp.git
-cd kibana-mcp
-docker build -t kibana-mcp .
-```
-
-### 2. Configure MCP Client
-
-Add to your MCP client config (Claude Desktop, Cursor, etc.):
+### 1. Configure MCP Cli
 
 **Option A: Using Environment Variables (Recommended)**
 
@@ -50,7 +40,7 @@ Then add to your MCP config:
         "KIBANA_URL",
         "-e",
         "KIBANA_API_KEY",
-        "kibana-mcp"
+        "ghcr.io/jamesagarside/kibana-mcp:latest"
       ]
     }
   }
@@ -76,7 +66,7 @@ For username/password, use:
         "KIBANA_USERNAME",
         "-e",
         "KIBANA_PASSWORD",
-        "kibana-mcp"
+        "ghcr.io/jamesagarside/kibana-mcp:latest"
       ]
     }
   }
@@ -102,7 +92,7 @@ Using API Key:
         "KIBANA_URL=https://your-kibana.example.com:5601",
         "-e",
         "KIBANA_API_KEY=your_base64_api_key",
-        "kibana-mcp"
+        "ghcr.io/jamesagarside/kibana-mcp:latest"
       ]
     }
   }
@@ -128,7 +118,7 @@ Using Username/Password:
         "KIBANA_USERNAME=your_username",
         "-e",
         "KIBANA_PASSWORD=your_password",
-        "kibana-mcp"
+        "ghcr.io/jamesagarside/kibana-mcp:latest"
       ]
     }
   }
@@ -136,6 +126,16 @@ Using Username/Password:
 ```
 
 _Note: Option B is less secure but more convenient for tools like Claude Desktop where environment variables are harder to manage._
+
+### Build yourself
+
+If you'd rather not use the public image you can build this MCP server yourself.
+
+```bash
+git clone https://github.com/jamesagarside/kibana-mcp.git
+cd kibana-mcp
+make build
+```
 
 ## Available Tools
 
