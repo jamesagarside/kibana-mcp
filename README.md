@@ -6,17 +6,7 @@ Model Context Protocol (MCP) server for Kibana Security - manage alerts, rules, 
 
 ## Quick Start
 
-### 1. Clone and Build
-
-```bash
-git clone https://github.com/ggilligan12/kibana-mcp.git
-cd kibana-mcp
-docker build -t kibana-mcp .
-```
-
-### 2. Configure MCP Client
-
-Add to your MCP client config (Claude Desktop, Cursor, etc.):
+### 1. Configure MCP Cli
 
 **Option A: Using Environment Variables (Recommended)**
 
@@ -50,7 +40,7 @@ Then add to your MCP config:
         "KIBANA_URL",
         "-e",
         "KIBANA_API_KEY",
-        "kibana-mcp"
+        "ghcr.io/jamesagarside/kibana-mcp:latest"
       ]
     }
   }
@@ -76,7 +66,7 @@ For username/password, use:
         "KIBANA_USERNAME",
         "-e",
         "KIBANA_PASSWORD",
-        "kibana-mcp"
+        "ghcr.io/jamesagarside/kibana-mcp:latest"
       ]
     }
   }
@@ -102,7 +92,7 @@ Using API Key:
         "KIBANA_URL=https://your-kibana.example.com:5601",
         "-e",
         "KIBANA_API_KEY=your_base64_api_key",
-        "kibana-mcp"
+        "ghcr.io/jamesagarside/kibana-mcp:latest"
       ]
     }
   }
@@ -128,7 +118,7 @@ Using Username/Password:
         "KIBANA_USERNAME=your_username",
         "-e",
         "KIBANA_PASSWORD=your_password",
-        "kibana-mcp"
+        "ghcr.io/jamesagarside/kibana-mcp:latest"
       ]
     }
   }
@@ -136,6 +126,75 @@ Using Username/Password:
 ```
 
 _Note: Option B is less secure but more convenient for tools like Claude Desktop where environment variables are harder to manage._
+
+### Build yourself
+
+If you'd rather not use the public image you can build this MCP server yourself.
+
+```bash
+git clone https://github.com/jamesagarside/kibana-mcp.git
+cd kibana-mcp
+make build
+```
+
+### Running as SSE Server
+
+This MCP server supports two transport modes:
+
+1. **STDIO Mode (default)** - Standard MCP transport for use with MCP clients
+2. **SSE Mode** - HTTP Server-Sent Events endpoint for web applications
+
+#### STDIO Mode (Default)
+
+The server runs in STDIO mode by default, suitable for MCP clients like Claude Desktop:
+
+```bash
+# Using Docker
+docker run -i --rm -e KIBANA_URL -e KIBANA_API_KEY ghcr.io/jamesagarside/kibana-mcp:latest
+
+# Using Python
+python -m kibana_mcp
+```
+
+#### SSE Mode
+
+To run as an SSE server, set the `MCP_TRANSPORT` environment variable:
+
+```bash
+# Set environment variables
+export MCP_TRANSPORT="sse"
+export MCP_SSE_HOST="127.0.0.1"  # Optional, defaults to 127.0.0.1
+export MCP_SSE_PORT="8000"       # Optional, defaults to 8000
+
+# Run the server
+python -m kibana_mcp
+```
+
+Or use the convenience script:
+
+```bash
+# Using the convenience script
+./run_sse_server.py
+
+# Or with custom host/port
+MCP_SSE_HOST="0.0.0.0" MCP_SSE_PORT="9000" ./run_sse_server.py
+```
+
+The SSE endpoint will be available at `http://127.0.0.1:8000/sse` (or your configured host/port).
+
+#### Docker SSE Deployment
+
+```bash
+# Run SSE server in Docker
+docker run -p 8000:8000 \
+  -e MCP_TRANSPORT="sse" \
+  -e MCP_SSE_HOST="0.0.0.0" \
+  -e KIBANA_URL \
+  -e KIBANA_API_KEY \
+  ghcr.io/jamesagarside/kibana-mcp:latest
+```
+
+Then access the SSE endpoint at `http://localhost:8000/sse`.
 
 ## Available Tools
 
