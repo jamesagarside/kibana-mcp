@@ -137,6 +137,65 @@ cd kibana-mcp
 make build
 ```
 
+### Running as SSE Server
+
+This MCP server supports two transport modes:
+
+1. **STDIO Mode (default)** - Standard MCP transport for use with MCP clients
+2. **SSE Mode** - HTTP Server-Sent Events endpoint for web applications
+
+#### STDIO Mode (Default)
+
+The server runs in STDIO mode by default, suitable for MCP clients like Claude Desktop:
+
+```bash
+# Using Docker
+docker run -i --rm -e KIBANA_URL -e KIBANA_API_KEY ghcr.io/jamesagarside/kibana-mcp:latest
+
+# Using Python
+python -m kibana_mcp
+```
+
+#### SSE Mode
+
+To run as an SSE server, set the `MCP_TRANSPORT` environment variable:
+
+```bash
+# Set environment variables
+export MCP_TRANSPORT="sse"
+export MCP_SSE_HOST="127.0.0.1"  # Optional, defaults to 127.0.0.1
+export MCP_SSE_PORT="8000"       # Optional, defaults to 8000
+
+# Run the server
+python -m kibana_mcp
+```
+
+Or use the convenience script:
+
+```bash
+# Using the convenience script
+./run_sse_server.py
+
+# Or with custom host/port
+MCP_SSE_HOST="0.0.0.0" MCP_SSE_PORT="9000" ./run_sse_server.py
+```
+
+The SSE endpoint will be available at `http://127.0.0.1:8000/sse` (or your configured host/port).
+
+#### Docker SSE Deployment
+
+```bash
+# Run SSE server in Docker
+docker run -p 8000:8000 \
+  -e MCP_TRANSPORT="sse" \
+  -e MCP_SSE_HOST="0.0.0.0" \
+  -e KIBANA_URL \
+  -e KIBANA_API_KEY \
+  ghcr.io/jamesagarside/kibana-mcp:latest
+```
+
+Then access the SSE endpoint at `http://localhost:8000/sse`.
+
 ## Available Tools
 
 ### Alert Management

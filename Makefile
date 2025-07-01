@@ -20,6 +20,7 @@ help:
 	@echo "Development:"
 	@echo "  help                   - Show this help message"
 	@echo "  dev                    - Run the server locally in development mode"
+	@echo "  dev-sse                - Run the server locally in SSE mode"
 	@echo "  build                  - Build the Docker image"
 	@echo ""
 	@echo "Testing:"
@@ -42,6 +43,18 @@ help:
 dev: ## Run the server locally in development mode
 	@echo "Starting kibana-mcp in development mode..."
 	uv sync && \
+	KIBANA_URL="http://localhost:5601" \
+	KIBANA_USERNAME="elastic" \
+	KIBANA_PASSWORD="elastic" \
+	uv run kibana-mcp
+
+.PHONY: dev-sse
+dev-sse: ## Run the server locally in SSE mode
+	@echo "Starting kibana-mcp in SSE mode..."
+	uv sync && \
+	MCP_TRANSPORT="sse" \
+	MCP_SSE_HOST="127.0.0.1" \
+	MCP_SSE_PORT="8000" \
 	KIBANA_URL="http://localhost:5601" \
 	KIBANA_USERNAME="elastic" \
 	KIBANA_PASSWORD="elastic" \
