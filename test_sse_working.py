@@ -23,7 +23,7 @@ def test_working_sse_server():
 
     if not os.path.exists("src/kibana_mcp/server.py"):
         print("❌ Error: Run from kibana-mcp project root")
-        return False
+        assert False, "Run from kibana-mcp project root"
 
     host = "127.0.0.1"
     port = 8000
@@ -92,7 +92,8 @@ def test_working_sse_server():
                             print()
                             print("✨ The SSE server is ready for MCP clients!")
 
-                            return True
+                            assert True  # Test passed
+                            return
                         else:
                             print(
                                 f"⚠️  Unexpected content-type: {content_type}")
@@ -107,16 +108,16 @@ def test_working_sse_server():
                 print("❌ Server process died:")
                 if stderr:
                     print("STDERR:", stderr[-500:])  # Last 500 chars
-                return False
+                assert False, "Server process died"
 
             time.sleep(1)
 
         print("❌ Server didn't start properly within 30 seconds")
-        return False
+        assert False, "Server didn't start properly within 30 seconds"
 
     except KeyboardInterrupt:
         print("\n🛑 Test interrupted")
-        return False
+        assert False, "Test interrupted"
     finally:
         print("🛑 Stopping server...")
         process.terminate()
@@ -127,5 +128,8 @@ def test_working_sse_server():
 
 
 if __name__ == "__main__":
-    success = test_working_sse_server()
-    sys.exit(0 if success else 1)
+    try:
+        test_working_sse_server()
+        sys.exit(0)
+    except AssertionError:
+        sys.exit(1)

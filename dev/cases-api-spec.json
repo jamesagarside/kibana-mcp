@@ -1,0 +1,1774 @@
+{
+  "/api/cases": {
+    "delete": {
+      "description": "You must have `read` or `all` privileges and the `delete` sub-feature privilege for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the cases you're deleting.\n",
+      "operationId": "deleteCaseDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_kbn_xsrf"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_ids"
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Delete cases",
+      "tags": [
+        "cases"
+      ]
+    },
+    "patch": {
+      "description": "You must have `all` privileges for the **Cases** feature in the  **Management**, **Observability**, or **Security** section of the Kibana  feature privileges, depending on the owner of the case you're updating.\n",
+      "operationId": "updateCaseDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_kbn_xsrf"
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "examples": {
+              "updateCaseRequest": {
+                "$ref": "#/components/examples/Cases_update_case_request"
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Cases_update_case_request"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "updateCaseResponse": {
+                  "$ref": "#/components/examples/Cases_update_case_response"
+                }
+              },
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/Cases_case_response_properties"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Update cases",
+      "tags": [
+        "cases"
+      ]
+    },
+    "post": {
+      "description": "You must have `all` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana  feature privileges, depending on the owner of the case you're creating.\n",
+      "operationId": "createCaseDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_kbn_xsrf"
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "examples": {
+              "createCaseRequest": {
+                "$ref": "#/components/examples/Cases_create_case_request"
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Cases_create_case_request"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "createCaseResponse": {
+                  "$ref": "#/components/examples/Cases_create_case_response"
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/Cases_case_response_properties"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Create a case",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/_find": {
+    "get": {
+      "description": "You must have `read` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the cases you're seeking.\n",
+      "operationId": "findCasesDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_assignees_filter"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_category"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_defaultSearchOperator"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_from"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_owner_filter"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_page_index"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_page_size"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_reporters"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_search"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_searchFields"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_severity"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_sortField"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_sort_order"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_status"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_tags"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_to"
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "findCaseResponse": {
+                  "$ref": "#/components/examples/Cases_find_case_response"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cases": {
+                    "items": {
+                      "$ref": "#/components/schemas/Cases_case_response_properties"
+                    },
+                    "maxItems": 10000,
+                    "type": "array"
+                  },
+                  "count_closed_cases": {
+                    "type": "integer"
+                  },
+                  "count_in_progress_cases": {
+                    "type": "integer"
+                  },
+                  "count_open_cases": {
+                    "type": "integer"
+                  },
+                  "page": {
+                    "type": "integer"
+                  },
+                  "per_page": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Search cases",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/{caseId}": {
+    "get": {
+      "description": "You must have `read` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the case you're seeking.\n",
+      "operationId": "getCaseDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_case_id"
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "getDefaultCaseResponse": {
+                  "$ref": "#/components/examples/Cases_get_case_response"
+                },
+                "getDefaultObservabilityCaseReponse": {
+                  "$ref": "#/components/examples/Cases_get_case_observability_response"
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/Cases_case_response_properties"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Get case information",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/{caseId}/alerts": {
+    "get": {
+      "description": "You must have `read` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the cases you're seeking.\n",
+      "operationId": "getCaseAlertsDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_case_id"
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "getCaseAlertsResponse": {
+                  "$ref": "#/components/examples/Cases_get_case_alerts_response"
+                }
+              },
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/Cases_alert_response_properties"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Get all alerts for a case",
+      "tags": [
+        "cases"
+      ],
+      "x-state": "Technical preview"
+    }
+  },
+  "/api/cases/{caseId}/comments": {
+    "delete": {
+      "description": "Deletes all comments and alerts from a case. You must have `all` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the cases you're deleting.\n",
+      "operationId": "deleteCaseCommentsDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_kbn_xsrf"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_case_id"
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Delete all case comments and alerts",
+      "tags": [
+        "cases"
+      ]
+    },
+    "patch": {
+      "description": "You must have `all` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the case you're updating. NOTE: You cannot change the comment type or the owner of a comment.\n",
+      "operationId": "updateCaseCommentDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_kbn_xsrf"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_case_id"
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "examples": {
+              "updateCaseCommentRequest": {
+                "$ref": "#/components/examples/Cases_update_comment_request"
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Cases_update_case_comment_request"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "updateCaseCommentResponse": {
+                  "$ref": "#/components/examples/Cases_update_comment_response"
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/Cases_case_response_properties"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Update a case comment or alert",
+      "tags": [
+        "cases"
+      ]
+    },
+    "post": {
+      "description": "You must have `all` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the case you're creating. NOTE: Each case can have a maximum of 1,000 alerts.\n",
+      "operationId": "addCaseCommentDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_kbn_xsrf"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_case_id"
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "examples": {
+              "createCaseCommentRequest": {
+                "$ref": "#/components/examples/Cases_add_comment_request"
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Cases_add_case_comment_request"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "createCaseCommentResponse": {
+                  "$ref": "#/components/examples/Cases_add_comment_response"
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/Cases_case_response_properties"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Add a case comment or alert",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/{caseId}/comments/_find": {
+    "get": {
+      "description": "Retrieves a paginated list of comments for a case. You must have `read` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the cases with the comments you're seeking.\n",
+      "operationId": "findCaseCommentsDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_case_id"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_page_index"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_page_size"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_sort_order"
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_case_response_properties"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Find case comments and alerts",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/{caseId}/comments/{commentId}": {
+    "delete": {
+      "description": "You must have `all` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the cases you're deleting.\n",
+      "operationId": "deleteCaseCommentDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_kbn_xsrf"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_case_id"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_comment_id"
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Delete a case comment or alert",
+      "tags": [
+        "cases"
+      ]
+    },
+    "get": {
+      "description": "You must have `read` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the cases with the comments you're seeking.\n",
+      "operationId": "getCaseCommentDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_case_id"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_comment_id"
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "getCaseCommentResponse": {
+                  "$ref": "#/components/examples/Cases_get_comment_response"
+                }
+              },
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Cases_alert_comment_response_properties"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Cases_user_comment_response_properties"
+                  }
+                ]
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Get a case comment or alert",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/{caseId}/connector/{connectorId}/_push": {
+    "post": {
+      "description": "You must have `all` privileges for the **Actions and Connectors** feature in the **Management** section of the Kibana feature privileges. You must also have `all` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the case you're pushing.\n",
+      "operationId": "pushCaseDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_case_id"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_connector_id"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_kbn_xsrf"
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "nullable": true,
+              "type": "object"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "pushCaseResponse": {
+                  "$ref": "#/components/examples/Cases_push_case_response"
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/Cases_case_response_properties"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Push a case to an external service",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/{caseId}/files": {
+    "post": {
+      "description": "Attach a file to a case. You must have `all` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the case you're updating. The request must include:\n- The `Content-Type: multipart/form-data` HTTP header.\n- The location of the file that is being uploaded.\n",
+      "operationId": "addCaseFileDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_kbn_xsrf"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_case_id"
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "$ref": "#/components/schemas/Cases_add_case_file_request"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "addCaseFileResponse": {
+                  "$ref": "#/components/examples/Cases_add_comment_response"
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/Cases_case_response_properties"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Attach a file to a case",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/{caseId}/user_actions/_find": {
+    "get": {
+      "description": "Retrives a paginated list of user activity for a case. You must have `read` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the case you're seeking.\n",
+      "operationId": "findCaseActivityDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_case_id"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_page_index"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_page_size"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_sort_order"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_user_action_types"
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "findCaseActivityResponse": {
+                  "$ref": "#/components/examples/Cases_find_case_activity_response"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "page": {
+                    "type": "integer"
+                  },
+                  "perPage": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer"
+                  },
+                  "userActions": {
+                    "items": {
+                      "$ref": "#/components/schemas/Cases_user_actions_find_response_properties"
+                    },
+                    "maxItems": 10000,
+                    "type": "array"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Find case activity",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/alerts/{alertId}": {
+    "get": {
+      "description": "You must have `read` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the cases you're seeking.\n",
+      "operationId": "getCasesByAlertDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_alert_id"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_owner_filter"
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "example": [
+                  {
+                    "id": "06116b80-e1c3-11ec-be9b-9b1838238ee6",
+                    "title": "security_case"
+                  }
+                ],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "The case identifier.",
+                      "type": "string"
+                    },
+                    "title": {
+                      "description": "The case title.",
+                      "type": "string"
+                    }
+                  }
+                },
+                "maxItems": 10000,
+                "type": "array"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Get cases for an alert",
+      "tags": [
+        "cases"
+      ],
+      "x-state": "Technical preview"
+    }
+  },
+  "/api/cases/configure": {
+    "get": {
+      "description": "Get setting details such as the closure type, custom fields, templatse, and the default connector for cases. You must have `read` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on where the cases were created.\n",
+      "operationId": "getCaseConfigurationDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_owner_filter"
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "getConfigurationResponse": {
+                  "$ref": "#/components/examples/Cases_get_case_configuration_response"
+                }
+              },
+              "schema": {
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "closure_type": {
+                      "$ref": "#/components/schemas/Cases_closure_types"
+                    },
+                    "connector": {
+                      "type": "object",
+                      "properties": {
+                        "fields": {
+                          "description": "The fields specified in the case configuration are not used and are not propagated to individual cases, therefore it is recommended to set it to `null`.",
+                          "nullable": true,
+                          "type": "object"
+                        },
+                        "id": {
+                          "description": "The identifier for the connector. If you do not want a default connector, use `none`. To retrieve connector IDs, use the find connectors API.",
+                          "example": "none",
+                          "type": "string"
+                        },
+                        "name": {
+                          "description": "The name of the connector. If you do not want a default connector, use `none`. To retrieve connector names, use the find connectors API.",
+                          "example": "none",
+                          "type": "string"
+                        },
+                        "type": {
+                          "$ref": "#/components/schemas/Cases_connector_types"
+                        }
+                      }
+                    },
+                    "created_at": {
+                      "example": "2022-06-01T17:07:17.767Z",
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "created_by": {
+                      "type": "object",
+                      "properties": {
+                        "email": {
+                          "example": null,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "full_name": {
+                          "example": null,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "profile_uid": {
+                          "example": "u_J41Oh6L9ki-Vo2tOogS8WRTENzhHurGtRc87NgEAlkc_0",
+                          "type": "string"
+                        },
+                        "username": {
+                          "example": "elastic",
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "email",
+                        "full_name",
+                        "username"
+                      ]
+                    },
+                    "customFields": {
+                      "description": "Custom fields configuration details.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "defaultValue": {
+                            "description": "A default value for the custom field. If the `type` is `text`, the default value must be a string. If the `type` is `toggle`, the default value must be boolean.\n",
+                            "oneOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ]
+                          },
+                          "key": {
+                            "description": "A unique key for the custom field. Must be lower case and composed only of a-z, 0-9, '_', and '-' characters. It is used in API calls to refer to a specific custom field.\n",
+                            "maxLength": 36,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "label": {
+                            "description": "The custom field label that is displayed in the case.",
+                            "maxLength": 50,
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "type": {
+                            "description": "The type of the custom field.",
+                            "enum": [
+                              "text",
+                              "toggle"
+                            ],
+                            "type": "string"
+                          },
+                          "required": {
+                            "description": "Indicates whether the field is required. If `false`, the custom field can be set to null or omitted when a case is created or updated.\n",
+                            "type": "boolean"
+                          }
+                        }
+                      },
+                      "type": "array"
+                    },
+                    "error": {
+                      "example": null,
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "id": {
+                      "example": "4a97a440-e1cd-11ec-be9b-9b1838238ee6",
+                      "type": "string"
+                    },
+                    "mappings": {
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "action_type": {
+                            "example": "overwrite",
+                            "type": "string"
+                          },
+                          "source": {
+                            "example": "title",
+                            "type": "string"
+                          },
+                          "target": {
+                            "example": "summary",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "type": "array"
+                    },
+                    "owner": {
+                      "$ref": "#/components/schemas/Cases_owner"
+                    },
+                    "templates": {
+                      "$ref": "#/components/schemas/Cases_templates"
+                    },
+                    "updated_at": {
+                      "example": "2022-06-01T19:58:48.169Z",
+                      "format": "date-time",
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "updated_by": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "email": {
+                          "example": null,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "full_name": {
+                          "example": null,
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "profile_uid": {
+                          "example": "u_J41Oh6L9ki-Vo2tOogS8WRTENzhHurGtRc87NgEAlkc_0",
+                          "type": "string"
+                        },
+                        "username": {
+                          "example": "elastic",
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "email",
+                        "full_name",
+                        "username"
+                      ]
+                    },
+                    "version": {
+                      "example": "WzIwNzMsMV0=",
+                      "type": "string"
+                    }
+                  }
+                },
+                "type": "array"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Get case settings",
+      "tags": [
+        "cases"
+      ]
+    },
+    "post": {
+      "description": "Case settings include external connection details, custom fields, and templates. Connectors are used to interface with external systems. You must create a connector before you can use it in your cases. If you set a default connector, it is automatically selected when you create cases in Kibana. If you use the create case API, however, you must still specify all of the connector details. You must have `all` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on where you are creating cases.\n",
+      "operationId": "setCaseConfigurationDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_kbn_xsrf"
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "examples": {
+              "setCaseConfigRequest": {
+                "$ref": "#/components/examples/Cases_set_case_configuration_request"
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Cases_set_case_configuration_request"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "setCaseConfigResponse": {
+                  "$ref": "#/components/examples/Cases_set_case_configuration_response"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "closure_type": {
+                    "$ref": "#/components/schemas/Cases_closure_types"
+                  },
+                  "connector": {
+                    "type": "object",
+                    "properties": {
+                      "fields": {
+                        "description": "The fields specified in the case configuration are not used and are not propagated to individual cases, therefore it is recommended to set it to `null`.",
+                        "nullable": true,
+                        "type": "object"
+                      },
+                      "id": {
+                        "description": "The identifier for the connector. If you do not want a default connector, use `none`. To retrieve connector IDs, use the find connectors API.",
+                        "example": "none",
+                        "type": "string"
+                      },
+                      "name": {
+                        "description": "The name of the connector. If you do not want a default connector, use `none`. To retrieve connector names, use the find connectors API.",
+                        "example": "none",
+                        "type": "string"
+                      },
+                      "type": {
+                        "$ref": "#/components/schemas/Cases_connector_types"
+                      }
+                    }
+                  },
+                  "created_at": {
+                    "example": "2022-06-01T17:07:17.767Z",
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "created_by": {
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "example": null,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "full_name": {
+                        "example": null,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "profile_uid": {
+                        "example": "u_J41Oh6L9ki-Vo2tOogS8WRTENzhHurGtRc87NgEAlkc_0",
+                        "type": "string"
+                      },
+                      "username": {
+                        "example": "elastic",
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "email",
+                      "full_name",
+                      "username"
+                    ]
+                  },
+                  "customFields": {
+                    "description": "Custom fields configuration details.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "defaultValue": {
+                          "description": "A default value for the custom field. If the `type` is `text`, the default value must be a string. If the `type` is `toggle`, the default value must be boolean.\n",
+                          "oneOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "boolean"
+                            }
+                          ]
+                        },
+                        "key": {
+                          "description": "A unique key for the custom field. Must be lower case and composed only of a-z, 0-9, '_', and '-' characters. It is used in API calls to refer to a specific custom field.\n",
+                          "maxLength": 36,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "label": {
+                          "description": "The custom field label that is displayed in the case.",
+                          "maxLength": 50,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "type": {
+                          "description": "The type of the custom field.",
+                          "enum": [
+                            "text",
+                            "toggle"
+                          ],
+                          "type": "string"
+                        },
+                        "required": {
+                          "description": "Indicates whether the field is required. If `false`, the custom field can be set to null or omitted when a case is created or updated.\n",
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "type": "array"
+                  },
+                  "error": {
+                    "example": null,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "id": {
+                    "example": "4a97a440-e1cd-11ec-be9b-9b1838238ee6",
+                    "type": "string"
+                  },
+                  "mappings": {
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "action_type": {
+                          "example": "overwrite",
+                          "type": "string"
+                        },
+                        "source": {
+                          "example": "title",
+                          "type": "string"
+                        },
+                        "target": {
+                          "example": "summary",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "type": "array"
+                  },
+                  "owner": {
+                    "$ref": "#/components/schemas/Cases_owner"
+                  },
+                  "templates": {
+                    "$ref": "#/components/schemas/Cases_templates"
+                  },
+                  "updated_at": {
+                    "example": "2022-06-01T19:58:48.169Z",
+                    "format": "date-time",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "updated_by": {
+                    "nullable": true,
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "example": null,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "full_name": {
+                        "example": null,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "profile_uid": {
+                        "example": "u_J41Oh6L9ki-Vo2tOogS8WRTENzhHurGtRc87NgEAlkc_0",
+                        "type": "string"
+                      },
+                      "username": {
+                        "example": "elastic",
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "email",
+                      "full_name",
+                      "username"
+                    ]
+                  },
+                  "version": {
+                    "example": "WzIwNzMsMV0=",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Add case settings",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/configure/{configurationId}": {
+    "patch": {
+      "description": "Updates setting details such as the closure type, custom fields, templates, and the default connector for cases. Connectors are used to interface with external systems. You must create a connector before you can use it in your cases. You must have `all` privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on where the case was created.\n",
+      "operationId": "updateCaseConfigurationDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_kbn_xsrf"
+        },
+        {
+          "$ref": "#/components/parameters/Cases_configuration_id"
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "examples": {
+              "updateCaseConfigurationRequest": {
+                "$ref": "#/components/examples/Cases_update_case_configuration_request"
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/Cases_update_case_configuration_request"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "updateCaseConfigurationResponse": {
+                  "$ref": "#/components/examples/Cases_update_case_configuration_response"
+                }
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "closure_type": {
+                    "$ref": "#/components/schemas/Cases_closure_types"
+                  },
+                  "connector": {
+                    "type": "object",
+                    "properties": {
+                      "fields": {
+                        "description": "The fields specified in the case configuration are not used and are not propagated to individual cases, therefore it is recommended to set it to `null`.",
+                        "nullable": true,
+                        "type": "object"
+                      },
+                      "id": {
+                        "description": "The identifier for the connector. If you do not want a default connector, use `none`. To retrieve connector IDs, use the find connectors API.",
+                        "example": "none",
+                        "type": "string"
+                      },
+                      "name": {
+                        "description": "The name of the connector. If you do not want a default connector, use `none`. To retrieve connector names, use the find connectors API.",
+                        "example": "none",
+                        "type": "string"
+                      },
+                      "type": {
+                        "$ref": "#/components/schemas/Cases_connector_types"
+                      }
+                    }
+                  },
+                  "created_at": {
+                    "example": "2022-06-01T17:07:17.767Z",
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "created_by": {
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "example": null,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "full_name": {
+                        "example": null,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "profile_uid": {
+                        "example": "u_J41Oh6L9ki-Vo2tOogS8WRTENzhHurGtRc87NgEAlkc_0",
+                        "type": "string"
+                      },
+                      "username": {
+                        "example": "elastic",
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "email",
+                      "full_name",
+                      "username"
+                    ]
+                  },
+                  "customFields": {
+                    "description": "Custom fields configuration details.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "defaultValue": {
+                          "description": "A default value for the custom field. If the `type` is `text`, the default value must be a string. If the `type` is `toggle`, the default value must be boolean.\n",
+                          "oneOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "boolean"
+                            }
+                          ]
+                        },
+                        "key": {
+                          "description": "A unique key for the custom field. Must be lower case and composed only of a-z, 0-9, '_', and '-' characters. It is used in API calls to refer to a specific custom field.\n",
+                          "maxLength": 36,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "label": {
+                          "description": "The custom field label that is displayed in the case.",
+                          "maxLength": 50,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "type": {
+                          "description": "The type of the custom field.",
+                          "enum": [
+                            "text",
+                            "toggle"
+                          ],
+                          "type": "string"
+                        },
+                        "required": {
+                          "description": "Indicates whether the field is required. If `false`, the custom field can be set to null or omitted when a case is created or updated.\n",
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "type": "array"
+                  },
+                  "error": {
+                    "example": null,
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "id": {
+                    "example": "4a97a440-e1cd-11ec-be9b-9b1838238ee6",
+                    "type": "string"
+                  },
+                  "mappings": {
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "action_type": {
+                          "example": "overwrite",
+                          "type": "string"
+                        },
+                        "source": {
+                          "example": "title",
+                          "type": "string"
+                        },
+                        "target": {
+                          "example": "summary",
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "type": "array"
+                  },
+                  "owner": {
+                    "$ref": "#/components/schemas/Cases_owner"
+                  },
+                  "templates": {
+                    "$ref": "#/components/schemas/Cases_templates"
+                  },
+                  "updated_at": {
+                    "example": "2022-06-01T19:58:48.169Z",
+                    "format": "date-time",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "updated_by": {
+                    "nullable": true,
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "example": null,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "full_name": {
+                        "example": null,
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "profile_uid": {
+                        "example": "u_J41Oh6L9ki-Vo2tOogS8WRTENzhHurGtRc87NgEAlkc_0",
+                        "type": "string"
+                      },
+                      "username": {
+                        "example": "elastic",
+                        "nullable": true,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "email",
+                      "full_name",
+                      "username"
+                    ]
+                  },
+                  "version": {
+                    "example": "WzIwNzMsMV0=",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Update case settings",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/configure/connectors/_find": {
+    "get": {
+      "description": "Get information about connectors that are supported for use in cases. You must have `read` privileges for the **Actions and Connectors** feature in the **Management** section of the Kibana feature privileges.\n",
+      "operationId": "findCaseConnectorsDefaultSpace",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "findConnectorResponse": {
+                  "$ref": "#/components/examples/Cases_find_connector_response"
+                }
+              },
+              "schema": {
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "actionTypeId": {
+                      "$ref": "#/components/schemas/Cases_connector_types"
+                    },
+                    "config": {
+                      "additionalProperties": true,
+                      "type": "object",
+                      "properties": {
+                        "apiUrl": {
+                          "type": "string"
+                        },
+                        "projectKey": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "isDeprecated": {
+                      "type": "boolean"
+                    },
+                    "isMissingSecrets": {
+                      "type": "boolean"
+                    },
+                    "isPreconfigured": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "referencedByCount": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "maxItems": 1000,
+                "type": "array"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Get case connectors",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/reporters": {
+    "get": {
+      "description": "Returns information about the users who opened cases. You must have read privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the cases. The API returns information about the users as they existed at the time of the case creation, including their name, full name, and email address. If any of those details change thereafter or if a user is deleted, the information returned by this API is unchanged.\n",
+      "operationId": "getCaseReportersDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_owner_filter"
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "getReportersResponse": {
+                  "$ref": "#/components/examples/Cases_get_reporters_response"
+                }
+              },
+              "schema": {
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "example": null,
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "full_name": {
+                      "example": null,
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "profile_uid": {
+                      "example": "u_J41Oh6L9ki-Vo2tOogS8WRTENzhHurGtRc87NgEAlkc_0",
+                      "type": "string"
+                    },
+                    "username": {
+                      "example": "elastic",
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "email",
+                    "full_name",
+                    "username"
+                  ]
+                },
+                "maxItems": 10000,
+                "type": "array"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Get case creators",
+      "tags": [
+        "cases"
+      ]
+    }
+  },
+  "/api/cases/tags": {
+    "get": {
+      "description": "Aggregates and returns a list of case tags. You must have read privileges for the **Cases** feature in the **Management**, **Observability**, or **Security** section of the Kibana feature privileges, depending on the owner of the cases you're seeking.\n",
+      "operationId": "getCaseTagsDefaultSpace",
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Cases_owner_filter"
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "getTagsResponse": {
+                  "$ref": "#/components/examples/Cases_get_tags_response"
+                }
+              },
+              "schema": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 10000,
+                "type": "array"
+              }
+            }
+          },
+          "description": "Indicates a successful call."
+        },
+        "401": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cases_4xx_response"
+              }
+            }
+          },
+          "description": "Authorization information is missing or invalid."
+        }
+      },
+      "summary": "Get case tags",
+      "tags": [
+        "cases"
+      ]
+    }
+  }
+}
