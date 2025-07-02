@@ -12,8 +12,8 @@ import time
 import socket
 
 
-def test_port_open(host, port, timeout=5):
-    """Test if a port is open."""
+def check_port_open(host, port, timeout=5):
+    """Check if a port is open."""
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
@@ -63,7 +63,7 @@ def main():
         print("⏳ Waiting for server...")
 
         for i in range(30):  # 30 second timeout
-            if test_port_open(host, port):
+            if check_port_open(host, port):
                 print(f"✅ Server is listening on {host}:{port}")
                 print(
                     f"🌐 SSE endpoint should be at: http://{host}:{port}/sse/")

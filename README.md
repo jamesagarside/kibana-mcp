@@ -242,6 +242,20 @@ The minimal test will:
 - **`create_exception_list`** - Create new exception lists
 - **`associate_shared_exception_list`** - Link exception lists to rules
 
+### Cases Management
+
+- **`find_cases`** - Search for cases based on various criteria
+- **`get_case`** - Get detailed information about a specific case
+- **`create_case`** - Create a new case
+- **`update_case`** - Update an existing case
+- **`delete_cases`** - Delete one or more cases
+- **`add_case_comment`** - Add a comment or alert to a case
+- **`get_case_comments`** - Get comments and alerts for a specific case
+- **`get_case_alerts`** - Get all alerts attached to a specific case
+- **`get_cases_by_alert`** - Get all cases that contain a specific alert
+- **`get_case_configuration`** - Get case configuration settings
+- **`get_case_tags`** - Get all case tags
+
 ### Saved Objects Management
 
 - **`find_objects`** - Search for saved objects (dashboards, visualizations, etc.)

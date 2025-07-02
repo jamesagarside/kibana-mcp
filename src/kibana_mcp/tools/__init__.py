@@ -40,6 +40,19 @@ from .endpoint.scan_endpoint import _call_scan_endpoint
 from .endpoint.get_file_info import _call_get_file_info
 from .endpoint.download_file import _call_download_file
 
+# Import cases tools
+from .cases.find_cases import _call_find_cases
+from .cases.get_case import _call_get_case
+from .cases.create_case import _call_create_case
+from .cases.update_case import _call_update_case
+from .cases.delete_cases import _call_delete_cases
+from .cases.add_case_comment import _call_add_case_comment
+from .cases.get_case_comments import _call_get_case_comments
+from .cases.get_case_alerts import _call_get_case_alerts
+from .cases.get_cases_by_alert import _call_get_cases_by_alert
+from .cases.get_case_configuration import _call_get_case_configuration
+from .cases.get_case_tags import _call_get_case_tags
+
 # Import utility function
 from .utils._utils import execute_tool_safely
 
@@ -54,6 +67,7 @@ __all__ = [
     '_call_get_rule',
     '_call_delete_rule',
     '_call_update_rule_status',
+    '_call_find_rules',
     '_call_get_prepackaged_rules_status',
     '_call_install_prepackaged_rules',
 
@@ -85,6 +99,19 @@ __all__ = [
     '_call_scan_endpoint',
     '_call_get_file_info',
     '_call_download_file',
+
+    # Cases tools
+    '_call_find_cases',
+    '_call_get_case',
+    '_call_create_case',
+    '_call_update_case',
+    '_call_delete_cases',
+    '_call_add_case_comment',
+    '_call_get_case_comments',
+    '_call_get_case_alerts',
+    '_call_get_cases_by_alert',
+    '_call_get_case_configuration',
+    '_call_get_case_tags',
 
     # Utils
     'execute_tool_safely'

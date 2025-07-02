@@ -52,6 +52,19 @@ from kibana_mcp.tools import (
     _call_get_file_info,
     _call_download_file,
 
+    # Cases tools
+    _call_find_cases,
+    _call_get_case,
+    _call_create_case,
+    _call_update_case,
+    _call_delete_cases,
+    _call_add_case_comment,
+    _call_get_case_comments,
+    _call_get_case_alerts,
+    _call_get_cases_by_alert,
+    _call_get_case_configuration,
+    _call_get_case_tags,
+
     # Utils
     execute_tool_safely
 )
@@ -881,6 +894,251 @@ async def download_file(
         http_client=http_client,
         action_id=action_id,
         file_id=file_id
+    )
+
+
+# ============================================
+# Cases Tools
+# ============================================
+
+@mcp.tool()
+async def find_cases(
+    assignees: Optional[List[str]] = None,
+    category: Optional[str] = None,
+    default_search_operator: str = "OR",
+    from_date: Optional[str] = None,
+    owner: Optional[List[str]] = None,
+    page: int = 1,
+    per_page: int = 20,
+    reporters: Optional[List[str]] = None,
+    search: Optional[str] = None,
+    search_fields: Optional[List[str]] = None,
+    severity: Optional[str] = None,
+    sort_field: str = "created_at",
+    sort_order: str = "desc",
+    status: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    to_date: Optional[str] = None
+) -> list[types.TextContent]:
+    """Search for cases based on various criteria."""
+    return await execute_tool_safely(
+        tool_name='find_cases',
+        tool_impl_func=_call_find_cases,
+        http_client=http_client,
+        assignees=assignees,
+        category=category,
+        default_search_operator=default_search_operator,
+        from_date=from_date,
+        owner=owner,
+        page=page,
+        per_page=per_page,
+        reporters=reporters,
+        search=search,
+        search_fields=search_fields,
+        severity=severity,
+        sort_field=sort_field,
+        sort_order=sort_order,
+        status=status,
+        tags=tags,
+        to_date=to_date
+    )
+
+
+@mcp.tool()
+async def get_case(case_id: str) -> list[types.TextContent]:
+    """Get detailed information about a specific case."""
+    return await execute_tool_safely(
+        tool_name='get_case',
+        tool_impl_func=_call_get_case,
+        http_client=http_client,
+        case_id=case_id
+    )
+
+
+@mcp.tool()
+async def create_case(
+    title: str,
+    description: str,
+    tags: Optional[List[str]] = None,
+    assignees: Optional[List[Dict[str, str]]] = None,
+    category: Optional[str] = None,
+    connector_id: str = "none",
+    connector_name: str = "none",
+    connector_type: str = ".none",
+    connector_fields: Optional[Dict[str, Any]] = None,
+    custom_fields: Optional[List[Dict[str, Any]]] = None,
+    owner: str = "securitySolution",
+    severity: str = "low",
+    settings: Optional[Dict[str, bool]] = None
+) -> list[types.TextContent]:
+    """Create a new case."""
+    return await execute_tool_safely(
+        tool_name='create_case',
+        tool_impl_func=_call_create_case,
+        http_client=http_client,
+        title=title,
+        description=description,
+        tags=tags,
+        assignees=assignees,
+        category=category,
+        connector_id=connector_id,
+        connector_name=connector_name,
+        connector_type=connector_type,
+        connector_fields=connector_fields,
+        custom_fields=custom_fields,
+        owner=owner,
+        severity=severity,
+        settings=settings
+    )
+
+
+@mcp.tool()
+async def update_case(
+    case_id: str,
+    version: str,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    assignees: Optional[List[Dict[str, str]]] = None,
+    category: Optional[str] = None,
+    connector_id: Optional[str] = None,
+    connector_name: Optional[str] = None,
+    connector_type: Optional[str] = None,
+    connector_fields: Optional[Dict[str, Any]] = None,
+    custom_fields: Optional[List[Dict[str, Any]]] = None,
+    severity: Optional[str] = None,
+    status: Optional[str] = None,
+    settings: Optional[Dict[str, bool]] = None
+) -> list[types.TextContent]:
+    """Update an existing case."""
+    return await execute_tool_safely(
+        tool_name='update_case',
+        tool_impl_func=_call_update_case,
+        http_client=http_client,
+        case_id=case_id,
+        version=version,
+        title=title,
+        description=description,
+        tags=tags,
+        assignees=assignees,
+        category=category,
+        connector_id=connector_id,
+        connector_name=connector_name,
+        connector_type=connector_type,
+        connector_fields=connector_fields,
+        custom_fields=custom_fields,
+        severity=severity,
+        status=status,
+        settings=settings
+    )
+
+
+@mcp.tool()
+async def delete_cases(case_ids: List[str]) -> list[types.TextContent]:
+    """Delete one or more cases."""
+    return await execute_tool_safely(
+        tool_name='delete_cases',
+        tool_impl_func=_call_delete_cases,
+        http_client=http_client,
+        case_ids=case_ids
+    )
+
+
+@mcp.tool()
+async def add_case_comment(
+    case_id: str,
+    comment_type: str = "user",
+    comment: Optional[str] = None,
+    alert_ids: Optional[List[str]] = None,
+    alert_index: Optional[str] = None,
+    rule_id: Optional[str] = None,
+    rule_name: Optional[str] = None,
+    owner: str = "securitySolution"
+) -> list[types.TextContent]:
+    """Add a comment or alert to a case."""
+    return await execute_tool_safely(
+        tool_name='add_case_comment',
+        tool_impl_func=_call_add_case_comment,
+        http_client=http_client,
+        case_id=case_id,
+        comment_type=comment_type,
+        comment=comment,
+        alert_ids=alert_ids,
+        alert_index=alert_index,
+        rule_id=rule_id,
+        rule_name=rule_name,
+        owner=owner
+    )
+
+
+@mcp.tool()
+async def get_case_comments(
+    case_id: str,
+    page: int = 1,
+    per_page: int = 20,
+    sort_order: str = "desc"
+) -> list[types.TextContent]:
+    """Get comments and alerts for a specific case."""
+    return await execute_tool_safely(
+        tool_name='get_case_comments',
+        tool_impl_func=_call_get_case_comments,
+        http_client=http_client,
+        case_id=case_id,
+        page=page,
+        per_page=per_page,
+        sort_order=sort_order
+    )
+
+
+@mcp.tool()
+async def get_case_alerts(case_id: str) -> list[types.TextContent]:
+    """Get all alerts attached to a specific case."""
+    return await execute_tool_safely(
+        tool_name='get_case_alerts',
+        tool_impl_func=_call_get_case_alerts,
+        http_client=http_client,
+        case_id=case_id
+    )
+
+
+@mcp.tool()
+async def get_cases_by_alert(
+    alert_id: str,
+    owner: Optional[List[str]] = None
+) -> list[types.TextContent]:
+    """Get all cases that contain a specific alert."""
+    return await execute_tool_safely(
+        tool_name='get_cases_by_alert',
+        tool_impl_func=_call_get_cases_by_alert,
+        http_client=http_client,
+        alert_id=alert_id,
+        owner=owner
+    )
+
+
+@mcp.tool()
+async def get_case_configuration(
+    owner: Optional[List[str]] = None
+) -> list[types.TextContent]:
+    """Get case configuration settings."""
+    return await execute_tool_safely(
+        tool_name='get_case_configuration',
+        tool_impl_func=_call_get_case_configuration,
+        http_client=http_client,
+        owner=owner
+    )
+
+
+@mcp.tool()
+async def get_case_tags(
+    owner: Optional[List[str]] = None
+) -> list[types.TextContent]:
+    """Get all case tags."""
+    return await execute_tool_safely(
+        tool_name='get_case_tags',
+        tool_impl_func=_call_get_case_tags,
+        http_client=http_client,
+        owner=owner
     )
 
 
