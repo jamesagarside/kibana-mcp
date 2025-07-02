@@ -196,6 +196,28 @@ docker run -p 8000:8000 \
 
 Then access the SSE endpoint at `http://localhost:8000/sse`.
 
+### Testing SSE Mode
+
+To test that the SSE server is working correctly, you can use the provided test scripts:
+
+```bash
+# Quick test - verifies server starts and is listening
+make test-sse
+
+# Or run directly
+./test_minimal.py
+
+# Demonstration test showing SSE streaming
+./test_sse_working.py
+```
+
+The minimal test will:
+
+1. Start the MCP server in SSE mode
+2. Verify it's listening on the correct port
+3. Confirm the SSE endpoint is accessible
+4. Clean up the server process
+
 ## Available Tools
 
 ### Alert Management
@@ -400,6 +422,9 @@ make run-pytest
 
 # Run tests with coverage reporting
 make run-coverage
+
+# Test SSE server locally
+make test-sse
 ```
 
 #### Test Environment Commands

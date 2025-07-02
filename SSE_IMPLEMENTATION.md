@@ -12,12 +12,13 @@ The Kibana MCP server now supports two transport modes:
 ### Environment Variables
 
 - `MCP_TRANSPORT` - Transport mode ("stdio" or "sse"), defaults to "stdio"
-- `MCP_SSE_HOST` - SSE server host, defaults to "127.0.0.1" 
+- `MCP_SSE_HOST` - SSE server host, defaults to "127.0.0.1"
 - `MCP_SSE_PORT` - SSE server port, defaults to "8000"
 
 ### Running the Server
 
 #### STDIO Mode (Default)
+
 ```bash
 # Default mode - no additional configuration needed
 python -m kibana_mcp
@@ -27,6 +28,7 @@ MCP_TRANSPORT=stdio python -m kibana_mcp
 ```
 
 #### SSE Mode
+
 ```bash
 # Basic SSE mode
 MCP_TRANSPORT=sse python -m kibana_mcp
@@ -44,17 +46,20 @@ make dev-sse
 ## SSE Endpoint
 
 When running in SSE mode, the server exposes:
+
 - **SSE Endpoint**: `http://host:port/sse` - For SSE connections
 - **Messages Endpoint**: `http://host:port/messages` - For POST requests
 
 ## Files Added/Modified
 
 ### Modified Files
+
 - `src/kibana_mcp/server.py` - Added dual transport mode support
 - `README.md` - Added SSE documentation
 - `Makefile` - Added `dev-sse` target
 
 ### New Files
+
 - `run_sse_server.py` - Convenience script to run SSE server
 - `example_sse_usage.py` - Example showing how to use the SSE endpoint
 - `test_sse.py` - Simple test script for SSE connectivity
@@ -62,6 +67,7 @@ When running in SSE mode, the server exposes:
 ## Usage Examples
 
 ### Running SSE Server
+
 ```bash
 # Start SSE server with environment variables
 export KIBANA_URL="https://your-kibana.example.com:5601"
@@ -73,6 +79,7 @@ python -m kibana_mcp
 ```
 
 ### Testing SSE Connectivity
+
 ```bash
 # Test if SSE server is running
 python test_sse.py
@@ -85,6 +92,7 @@ python example_sse_usage.py --test
 ```
 
 ### Docker SSE Deployment
+
 ```bash
 # Run SSE server in Docker
 docker run -p 8000:8000 \
@@ -98,6 +106,7 @@ docker run -p 8000:8000 \
 ## Implementation Details
 
 The implementation uses FastMCP 0.4.1's built-in SSE support:
+
 - STDIO mode uses `mcp.run(transport="stdio")`
 - SSE mode configures `mcp.settings.host` and `mcp.settings.port`, then calls `asyncio.run(mcp.run_sse_async())`
 
