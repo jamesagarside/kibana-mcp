@@ -31,16 +31,16 @@ def make_mcp_request(tool_name: str, arguments: Dict[str, Any] = None) -> Dict[s
 
 def example_usage():
     """Example usage of the SSE endpoint."""
-    
+
     # This would be the actual SSE endpoint URL
     sse_url = "http://127.0.0.1:8000/sse"
-    
+
     print("Kibana MCP SSE Endpoint Example")
     print("=" * 40)
     print()
     print(f"SSE Endpoint: {sse_url}")
     print()
-    
+
     # Example requests
     examples = [
         {
@@ -48,7 +48,7 @@ def example_usage():
             "request": make_mcp_request("get_alerts", {"limit": 5})
         },
         {
-            "name": "Find Rules", 
+            "name": "Find Rules",
             "request": make_mcp_request("find_rules", {"per_page": 3})
         },
         {
@@ -59,21 +59,21 @@ def example_usage():
             })
         }
     ]
-    
+
     print("Example MCP Requests:")
     print("-" * 20)
-    
+
     for i, example in enumerate(examples, 1):
         print(f"\n{i}. {example['name']}")
         print("Request JSON:")
         print(json.dumps(example['request'], indent=2))
-        
+
         print("\nTo send this request to the SSE endpoint, you would:")
         print(f"  POST {sse_url}")
         print("  Content-Type: application/json")
         print("  Body: (the JSON above)")
         print()
-    
+
     print("Note: Make sure to:")
     print("1. Set your Kibana credentials in environment variables")
     print("2. Start the SSE server with: make dev-sse")
@@ -84,24 +84,25 @@ def test_with_requests():
     """Test the SSE endpoint using requests library (if available)."""
     try:
         import requests
-        
+
         sse_url = "http://127.0.0.1:8000/sse"
-        
+
         # Test basic connectivity
         print("Testing SSE endpoint connectivity...")
-        
+
         try:
             response = requests.get(sse_url, timeout=5)
-            print(f"✅ SSE endpoint is reachable (status: {response.status_code})")
+            print(
+                f"✅ SSE endpoint is reachable (status: {response.status_code})")
         except requests.exceptions.ConnectionError:
             print("❌ Cannot connect to SSE endpoint. Is the server running?")
             print("   Start with: make dev-sse")
             return
-        
+
         # Test MCP request
         print("\nTesting MCP request...")
         request_data = make_mcp_request("get_alerts", {"limit": 1})
-        
+
         try:
             response = requests.post(
                 sse_url,
@@ -109,19 +110,20 @@ def test_with_requests():
                 headers={"Content-Type": "application/json"},
                 timeout=10
             )
-            
+
             print(f"Response status: {response.status_code}")
             if response.status_code == 200:
                 print("✅ MCP request successful!")
                 # Note: In a real SSE implementation, this would be streamed
                 print("Response preview:")
-                print(response.text[:500] + "..." if len(response.text) > 500 else response.text)
+                print(
+                    response.text[:500] + "..." if len(response.text) > 500 else response.text)
             else:
                 print(f"❌ MCP request failed: {response.text}")
-                
+
         except Exception as e:
             print(f"❌ Error making MCP request: {e}")
-            
+
     except ImportError:
         print("❌ 'requests' library not available.")
         print("   Install with: pip install requests")

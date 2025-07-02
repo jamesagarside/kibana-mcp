@@ -27,6 +27,7 @@ help:
 	@echo "  test                   - Run all tests (pytest and coverage)"
 	@echo "  run-pytest             - Run pytest only"
 	@echo "  run-coverage           - Run tests with coverage reporting"
+	@echo "  test-sse               - Test SSE server locally"
 	@echo ""
 	@echo "Test Environment:"
 	@echo "  install-elastic-package - Install the elastic-package tool"
@@ -53,11 +54,11 @@ dev-sse: ## Run the server locally in SSE mode
 	@echo "Starting kibana-mcp in SSE mode..."
 	uv sync && \
 	MCP_TRANSPORT="sse" \
-	MCP_SSE_HOST="127.0.0.1" \
+	MCP_SSE_HOST="0.0.0.0" \
 	MCP_SSE_PORT="8000" \
-	KIBANA_URL="http://localhost:5601" \
+	KIBANA_URL="https://localhost:5601" \
 	KIBANA_USERNAME="elastic" \
-	KIBANA_PASSWORD="elastic" \
+	KIBANA_PASSWORD="changeme" \
 	uv run kibana-mcp
 
 .PHONY: build
@@ -95,6 +96,11 @@ run-coverage: load-venv ## Run tests with coverage reporting
 .PHONY: test
 test: run-pytest run-coverage ## Run all tests (pytest and coverage)
 	@echo "All tests completed"
+
+.PHONY: test-sse
+test-sse: ## Test SSE server locally
+	@echo "Testing SSE server locally..."
+	./test_minimal.py
 
 ###############################################################################
 # Test environment targets

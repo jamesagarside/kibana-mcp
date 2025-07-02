@@ -888,32 +888,30 @@ def run_server():
     """Configure client, run the MCP server loop, and handle cleanup."""
     global http_client  # Need global to ensure cleanup happens
     http_client = None  # Ensure it's None initially
-    
+
     # Check for SSE mode configuration
     transport_mode = os.getenv("MCP_TRANSPORT", "stdio").lower()
-    
+
     try:
         configure_http_client()  # Configure global client
-        
+
         if transport_mode == "sse":
             # SSE mode configuration
             host = os.getenv("MCP_SSE_HOST", "127.0.0.1")
             port = int(os.getenv("MCP_SSE_PORT", "8000"))
-            
-            # Configure SSE settings
-            mcp.settings.host = host
-            mcp.settings.port = port
-            
-            logger.info(f"Starting FastMCP server in SSE mode on {host}:{port}...")
-            logger.info(f"SSE endpoint will be available at: http://{host}:{port}/sse")
-            
-            # Run SSE mode asynchronously
-            asyncio.run(mcp.run_sse_async())
+
+            logger.info(
+                f"Starting FastMCP server in SSE mode on {host}:{port}...")
+            logger.info(
+                f"SSE endpoint will be available at: http://{host}:{port}/sse/")
+
+            # Run SSE mode with new API
+            mcp.run(transport="sse", host=host, port=port)
         else:
             # Default STDIO mode
             logger.info(f"Starting FastMCP server in STDIO mode...")
             mcp.run(transport="stdio")
-            
+
         logger.info(f"FastMCP server run loop finished normally.")
     except Exception as e:
         logger.error(f"Error during server run: {e}", exc_info=True)
