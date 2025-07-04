@@ -459,3 +459,33 @@ make configure-test-env
 # Stop the test environment
 make stop-test-env
 ```
+
+## Deployment on Cloud Run
+
+The server uses a completely stateless architecture, making it ideal for cloud deployments like Google Cloud Run and for integrating with automation tools like N8N.
+
+### Stateless Architecture Benefits
+
+- **No Session State**: Each request is self-contained, eliminating session loss concerns
+- **Scale to Zero**: Minimize costs when idle (autoscaling.knative.dev/minScale: "0")
+- **High Concurrency**: Support 1000+ concurrent requests
+- **Efficient Connection Pooling**: Optimized for short-lived connections
+
+### Cloud Run Deployment
+
+A simple deployment script is provided:
+
+```bash
+# Set your GCP project ID and region
+export PROJECT_ID="your-project-id"
+export REGION="europe-west2"
+
+# Run the deployment script
+./deploy-cloud-run.sh
+```
+
+For detailed information on the stateless architecture and optimizations for Cloud Run, see [CLOUD_RUN_SESSION_FIXES.md](CLOUD_RUN_SESSION_FIXES.md).
+
+### N8N Integration
+
+For integrating with N8N automation workflows, refer to the [N8N Integration Guide](N8N_INTEGRATION_GUIDE.md).

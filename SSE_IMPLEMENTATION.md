@@ -111,3 +111,27 @@ The implementation uses FastMCP 0.4.1's built-in SSE support:
 - SSE mode configures `mcp.settings.host` and `mcp.settings.port`, then calls `asyncio.run(mcp.run_sse_async())`
 
 The SSE server uses Starlette and Uvicorn under the hood, providing a production-ready HTTP server for MCP protocol communication.
+
+## Stateless Architecture
+
+The SSE implementation follows a completely stateless design pattern, making it ideal for:
+
+- **Cloud Run deployments**: No server-side session state to be lost during scaling or container restarts
+- **N8N agent workflows**: Handle multiple concurrent short-lived connections
+- **Horizontal scaling**: Deploy multiple instances without session state concerns
+- **High availability**: No single point of failure due to session state
+
+### Key Implementation Features
+
+1. **No In-Memory Sessions**: Each request is self-contained with its own context
+2. **Connection Pooling**: Efficient HTTP client connection reuse
+3. **Short Timeouts**: Optimized for quick agent interactions
+4. **Minimal Memory Footprint**: No large in-memory session storage
+
+This stateless approach eliminates the previous issues with session loss that could occur during:
+
+- Container restarts
+- Auto-scaling events
+- Connection interruptions
+
+For deployment on Google Cloud Run, see [CLOUD_RUN_SESSION_FIXES.md](CLOUD_RUN_SESSION_FIXES.md).

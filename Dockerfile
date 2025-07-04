@@ -28,12 +28,12 @@ RUN useradd --create-home --shell /bin/bash kibana && \
     chown -R kibana:kibana /app
 USER kibana
 
-# Health check to ensure the server can start
+# Health check to ensure the server can start (Cloud Run compatible)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import sys; sys.path.insert(0, '/app/src'); from kibana_mcp.server import configure_http_client; print('Health check passed')" || exit 1
+    CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
-# Expose no specific port since MCP uses stdio
-EXPOSE 8080
+# Expose port for Cloud Run (uses PORT environment variable)
+EXPOSE ${PORT:-8080}
 
 # Set entry point to run the Kibana MCP server
 ENTRYPOINT ["uv", "run", "kibana-mcp"]
