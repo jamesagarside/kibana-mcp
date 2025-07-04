@@ -85,13 +85,13 @@ def test_with_requests():
     try:
         import requests
 
-        sse_url = "http://127.0.0.1:8000/sse"
+        sse_url = "http://127.0.0.1:8000/sse/"
 
         # Test basic connectivity
         print("Testing SSE endpoint connectivity...")
 
         try:
-            response = requests.get(sse_url, timeout=5)
+            response = requests.get(sse_url, timeout=5, verify=False)
             print(
                 f"✅ SSE endpoint is reachable (status: {response.status_code})")
         except requests.exceptions.ConnectionError:
@@ -108,7 +108,8 @@ def test_with_requests():
                 sse_url,
                 json=request_data,
                 headers={"Content-Type": "application/json"},
-                timeout=10
+                timeout=10,
+                verify=False
             )
 
             print(f"Response status: {response.status_code}")

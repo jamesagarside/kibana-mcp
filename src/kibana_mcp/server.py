@@ -3,6 +3,8 @@ import os
 import httpx
 from typing import List, Optional, Dict, Any
 import logging
+import signal
+import sys
 
 # Import FastMCP and types
 from fastmcp import FastMCP
@@ -77,13 +79,18 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger("kibana-mcp")
 
 # --- Global MCP Instance and HTTP Client ---
-logger.info("Initializing Kibana MCP Server (FastMCP)...")
+logger.info("Initializing Stateless Kibana MCP Server (FastMCP)...")
+
+# Stateless configuration - optimized for short-lived sessions
+# No session state management, suitable for N8N agent workflows
 mcp = FastMCP("kibana-mcp")
+
+# HTTP client will be created per-request or use connection pooling
 http_client: httpx.AsyncClient | None = None
 
 
 def configure_http_client():
-    """Configure the global httpx client using environment variables."""
+    """Configure the global httpx client with connection pooling for stateless operation."""
     global http_client
     kibana_url = os.getenv("KIBANA_URL")
     encoded_api_key = os.getenv("KIBANA_API_KEY")
@@ -125,9 +132,23 @@ def configure_http_client():
             "Kibana authentication not configured. Set KIBANA_API_KEY or both KIBANA_USERNAME/PASSWORD.")
 
     logger.info(
-        f"Creating HTTP client for Kibana at {kibana_url} using {auth_method_used}.")
+        f"Creating stateless HTTP client for Kibana at {kibana_url} using {auth_method_used}.")
+
+    # Configure connection pooling for stateless operation
+    # Optimized for multiple short-lived connections (N8N agent workflows)
+    limits = httpx.Limits(
+        max_keepalive_connections=20,  # Keep connections open for reuse
+        max_connections=100,          # Allow many concurrent connections
+        keepalive_expiry=30.0         # Keep connections alive for 30 seconds
+    )
+
     http_client = httpx.AsyncClient(
-        base_url=kibana_url, headers=headers, timeout=30.0, verify=False, **auth_config
+        base_url=kibana_url,
+        headers=headers,
+        timeout=30.0,
+        verify=False,
+        limits=limits,
+        **auth_config
     )
 
 
@@ -682,8 +703,8 @@ async def import_objects(
 
     Args:
         objects_ndjson: A string containing the objects in NDJSON format.
-        create_new_copies: Whether to create new copies of the objects with new IDs.
-        overwrite: Whether to overwrite existing objects with the same ID.
+        create_new_copies: Whether to create new copies of the objects.
+        overwrite: Whether to overwrite existing objects.
     """
     return await execute_tool_safely(
         tool_name='import_objects',
@@ -693,9 +714,6 @@ async def import_objects(
         create_new_copies=create_new_copies,
         overwrite=overwrite
     )
-
-
-# --- Endpoint Management Tools ---
 
 
 @mcp.tool()
@@ -1142,6 +1160,21 @@ async def get_case_tags(
     )
 
 
+# Global shutdown flag for graceful termination
+shutdown_event = asyncio.Event()
+
+
+def signal_handler(signum, frame):
+    """Handle shutdown signals gracefully."""
+    logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+    shutdown_event.set()
+
+
+# Register signal handlers for graceful shutdown
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
+
+
 def run_server():
     """Configure client, run the MCP server loop, and handle cleanup."""
     global http_client  # Need global to ensure cleanup happens
@@ -1154,16 +1187,21 @@ def run_server():
         configure_http_client()  # Configure global client
 
         if transport_mode == "sse":
-            # SSE mode configuration
-            host = os.getenv("MCP_SSE_HOST", "127.0.0.1")
-            port = int(os.getenv("MCP_SSE_PORT", "8000"))
+            # Stateless SSE mode configuration
+            # Use 0.0.0.0 for Cloud Run, 127.0.0.1 for local development
+            host = os.getenv("MCP_SSE_HOST", "0.0.0.0" if os.getenv(
+                "GOOGLE_CLOUD_PROJECT") or os.getenv("K_SERVICE") else "127.0.0.1")
+            # Use Cloud Run PORT environment variable or fallback
+            port = int(os.getenv("PORT", os.getenv("MCP_SSE_PORT", "8080")))
 
             logger.info(
-                f"Starting FastMCP server in SSE mode on {host}:{port}...")
+                f"Starting stateless FastMCP server in SSE mode on {host}:{port}...")
             logger.info(
                 f"SSE endpoint will be available at: http://{host}:{port}/sse/")
+            logger.info(
+                "Server optimized for stateless operation and short-lived sessions")
 
-            # Run SSE mode with new API
+            # Run stateless SSE mode - no session configuration needed
             mcp.run(transport="sse", host=host, port=port)
         else:
             # Default STDIO mode
@@ -1190,4 +1228,13 @@ def run_server():
 
 # Allows running the server directly using `python -m kibana_mcp` or `uv run kibana-mcp`
 if __name__ == "__main__":
+    # Handle SIGINT and SIGTERM for graceful shutdown
+    def signal_handler(sig, frame):
+        logger.info(f"Received signal {sig}, shutting down gracefully...")
+        # Optionally, you can add more cleanup logic here
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     run_server()  # Call the synchronous function directly
